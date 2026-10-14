@@ -357,6 +357,9 @@ class CocoAgent:
                 self._failures += 1
                 meta["error"] = "empty reply"
                 return False, "", meta
+            # log_turn reads meta["ok"] for TURNS.SUCCEEDED; without it every
+            # warm answer was recorded as a failure.
+            meta["ok"] = True
             return True, text, meta
         finally:
             self._call_lock.release()

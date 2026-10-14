@@ -921,15 +921,6 @@
             "ready": false
           },
           {
-            "global_name": "GZT1ZFQ0JE5",
-            "title": "GLP-1 Social Conversations Sample Dataset",
-            "provider": "Socialgist",
-            "access": "Free",
-            "url": "https://app.snowflake.com/marketplace/listing/GZT1ZFQ0JE5",
-            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
-            "ready": false
-          },
-          {
             "global_name": "GZSNZ4PHA6",
             "title": "American Community Survey, 2016",
             "provider": "data.world, Inc",

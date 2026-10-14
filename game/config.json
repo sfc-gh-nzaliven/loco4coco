@@ -8,7 +8,9 @@
     "idle_shutdown_minutes": 0
   },
   "event": {
-    "venue": "berlin",
+    "venue": "london",
+    "event_name": "Hayadata",
+    "_event_name_comment": "What visitors see as the event: the docx 'Prepared for ... - <event_name>.' line, the share card and CoCo's persona. Independent of venue (which only picks datasets and region). Empty falls back to 'Snowflake World Tour <city>'.",
     "_venue_comment": "The ONE toggle a booth operator changes per event. Expands via the venues map below into city, language, cloud region and marketplace profile. One of: london, paris, berlin - and ONLY those three, because they are the three SWT events. This comment used to list frankfurt as a fourth, which is wrong and was actively dangerous: Frankfurt is the ACCOUNT's region, not an event, and resolve_venue() answers an unknown venue by quietly defaulting market_profile to 'uk', so an operator who trusted this line and set venue to 'frankfurt' would have stood up a booth serving London's datasets with no error anywhere. Do not add a venue here without adding it to the venues map, and do not add one that is not an event. Leave unset to hand-configure city/language/region directly.",
     "city": "London",
     "language": "en",
@@ -527,6 +529,15 @@
       "transport": "complete"
     },
     "workshop": {
+      "background": true,
+      "_background_comment": "Run the workshop draft in the background: CoCo answers at once with background_ack, the postbox unlocks, and the agent (10-40s) drafts while the visitor walks. The real reply lands in the bubble when ready; the postbox shows finishing until then. Set false to hold the visitor at the bench as before.",
+      "background_ack": "Brilliant - I am sketching your proof of concept now. Head to the postbox and grab any bonuses on the way, I will tell you what I came up with as you walk.",
+      "background_ready": "Your blueprint is ready at the postbox.",
+      "postbox_preparing": "PREPARING",
+      "postbox_ready_nudge": "Your blueprint is ready - head to the postbox!",
+      "locked_pending": "CoCo is already drafting your blueprint - head to the postbox.",
+      "locked_done": "Your blueprint is waiting for you at the postbox.",
+      "finishing": "CoCo is finishing your blueprint\u2026",
       "tile": [
         17,
         8
@@ -539,7 +550,7 @@
       "hint": "Think big and say it in one line. An AI agent that answers for you, a dashboard that explains itself, an app your team actually opens every morning, something that spots trouble before it lands. Whatever it is, we forge it here.",
       "placeholder": "e.g. an agent that answers policy questions with citations",
       "narrative": "Bench cleared, forge lit. Tell me what the finished thing does and I'll draw up the plan.",
-      "prompt": "The visitor's stated problem is: \"{problem}\". Keep your answer pointed at it.\nThe visitor is {first_name}, {industry}, at {company}. They hold: {held}. They will join: {joined}. In THE WORKSHOP they said the POC should: \"{input}\".\n\nFirst choose the archetype that matches what they are ACTUALLY trying to do. Pick exactly one of these keys:\ntalk-to-my-data (ask questions of structured data in plain English)\nask-my-documents (search or Q&A over documents and free text)\nextract-from-paperwork (pull structured fields out of forms, invoices, letters)\ntriage-and-classify (sort, route or prioritise incoming items)\nan-agent-that-acts (takes an action, not just answers)\npredict-what-happens-next (forecasting or risk scoring)\njoin-the-silos (unify data that lives in separate systems)\nshare-without-copying (give someone else live access)\nwatch-it-live (streaming or near real-time monitoring)\n\nThe data they hold decides this. If their source is documents or free text, it is ask-my-documents or extract-from-paperwork, NOT talk-to-my-data.\n\nFor features, you MUST choose 2 to 4 names EXACTLY as spelled from this list and nothing else:\n{feature_list}\n\nReturn ONLY minified JSON, no prose and no code fence, with exactly these keys:\n{\"archetype\": one key from the list above, \"poc_name\": short name in their own language, max 8 words, \"features\": array of 2-4 names copied exactly from the feature list, \"reply\": max 40 words, warm, spoken aloud to them, no bullet points, no em dashes}\n\nNothing else is wanted. Do NOT write a summary, considerations, a first step or a score - those are filled in elsewhere, and every extra word here is time the visitor spends waiting at the bench. Never claim the POC is built.\n\nWord choice matters: this goes into a document handed to a visitor at a public booth. Never use the words die, dies, dying, kill, killed, killing, suicide, cripple or crippled, and never use violent or morbid metaphors for systems failing. Say fails, stops, degrades or goes down instead. Keep the register plain and calm.",
+      "prompt": "The visitor's stated problem is: \"{problem}\". Keep your answer pointed at it.\nThe visitor is {first_name}, {industry}, at {company}. They hold: {held}. They will join: {joined}. In THE WORKSHOP they said the POC should: \"{input}\".\n\nOn the way here they also answered these bonus questions. Treat them as facts about their situation and let them decide the archetype, the name and the features where they apply:\n{bonus}\n\nFirst choose the archetype that matches what they are ACTUALLY trying to do. Pick exactly one of these keys:\ntalk-to-my-data (ask questions of structured data in plain English)\nask-my-documents (search or Q&A over documents and free text)\nextract-from-paperwork (pull structured fields out of forms, invoices, letters)\ntriage-and-classify (sort, route or prioritise incoming items)\nan-agent-that-acts (takes an action, not just answers)\npredict-what-happens-next (forecasting or risk scoring)\njoin-the-silos (unify data that lives in separate systems)\nshare-without-copying (give someone else live access)\nwatch-it-live (streaming or near real-time monitoring)\n\nThe data they hold decides this. If their source is documents or free text, it is ask-my-documents or extract-from-paperwork, NOT talk-to-my-data.\n\nFor features, you MUST choose 2 to 4 names EXACTLY as spelled from this list and nothing else:\n{feature_list}\n\nReturn ONLY minified JSON, no prose and no code fence, with exactly these keys:\n{\"archetype\": one key from the list above, \"poc_name\": short name in their own language, max 8 words, \"features\": array of 2-4 names copied exactly from the feature list, \"reply\": max 40 words, warm, spoken aloud to them, and if they answered any bonus questions mention one of their answers naturally so they hear it was used, no bullet points, no em dashes}\n\nNothing else is wanted. Do NOT write a summary, considerations, a first step or a score - those are filled in elsewhere, and every extra word here is time the visitor spends waiting at the bench. Never claim the POC is built.\n\nWord choice matters: this goes into a document handed to a visitor at a public booth. Never use the words die, dies, dying, kill, killed, killing, suicide, cripple or crippled, and never use violent or morbid metaphors for systems failing. Say fails, stops, degrades or goes down instead. Keep the register plain and calm.",
       "effort": "low",
       "timeout": 60,
       "_timeout_comment": "The ONE stop that overrides coco.turn_timeout, and it overrides it upwards. This is the only agentic turn (transport exec, tools on, max_turns 4) and has been measured at 20-27s, so the tight global ceiling would cut it off mid-think and hand back precomputed content on the single beat of the visit where the bespoke answer is the whole point. 60s is roughly twice the measured worst case. It stays a ceiling, not a licence: past it the fallback still carries the visit rather than leaving the bench hanging.",
@@ -682,6 +693,43 @@
     "prompt": "The visitor is {first_name}, {industry}, at {company}. They hold: {held}. They are joining: {joined}. Their POC is \"{poc_name}\": {poc_summary}\n\nThey have asked you one question: \"{input}\"\n\nAnswer it in at most 4 short sentences, specific to THEIR situation and their data, not generic advice. Plain English, no bullet points, no headings, no em dashes. If you are not sure, say what you would check.",
     "tool_hint": "Use your tools to check the Snowflake documentation before you answer, so the answer is grounded rather than guessed. One lookup is enough.",
     "_status": "Disabled: it must be a deliberate beat in the flow, not a popup. The /api/ask endpoint and the card are built and proven (real tool call, grounded answer) - re-enable when it has its own step or tile."
+  },
+  "bonus": {
+    "_comment": "Optional bonus objectives on the map. Never interrupts the main flow: an object spawns only while the visitor is walking (no interior or overlay open), with a countdown to REACH it, no timer to answer. Questions are generated by COMPLETE in the background from everything known so far; if generation fails nothing spawns. Missed ones can be answered at the postbox for half points. Answers feed the POC, the kickoff prompt, the docx and SESSIONS.BONUS_QA. The score is computed server-side only; the scoreboard reads SESSIONS (this account, today) so nothing is kept on the laptop.",
+    "enabled": true,
+    "spawn_seconds": 7,
+    "max_answered": 5,
+    "max_offered": 7,
+    "generate_timeout": 8,
+    "spawn_delay_ms": 1500,
+    "scoring": {
+      "_comment": "map is the MINIMUM for a bonus answered on the map; it is multiplied by up to map_max_multiplier the faster the visitor reaches it (full multiplier at spawn, falling linearly to x1 when the countdown ends). postbox is the flat half-points catch-up.",
+      "map": 100,
+      "map_max_multiplier": 3,
+      "postbox": 50,
+      "stop": 200,
+      "under_time": 250,
+      "all_answered": 300
+    },
+    "prompt": "You are helping shape a Snowflake proof of concept for a booth visitor. Here is everything we know so far:\n{known}\n\nAsk the ONE short question whose answer would most change or sharpen this proof of concept, that we do not already know. It must be answerable by tapping one of 2 to 4 short options. Plain everyday language a business person understands: no jargon, no product or feature names, never mention Snowflake or AI. Never ask for names, emails, phone numbers or any personal or contact details. Each question must cover a DIFFERENT decision topic from every topic already covered. Two questions are the same topic if their answers would tell us the same thing, even when the wording differs (for example 'which goal matters most' and 'what would make this most valuable first' are the same topic: the first business goal). Good distinct topics include: the first business goal, who uses the result, how fresh the data must be, how much data, the main blocker, whether personal data is involved, when success should show, who signs it off - but choose whatever matters most for THIS visitor.\n\nReply with minified JSON only, no prose: {\"topic\": \"2 to 4 word name of the decision topic\", \"question\": \"...\", \"options\": [\"...\", \"...\"], \"why\": \"one short internal reason\"}. Question at most 90 characters, each option at most 32 characters.",
+    "copy": {
+      "card_heading": "Bonus question",
+      "card_hint": "Tap an answer - CoCo will use it in your blueprint.",
+      "skip": "SKIP",
+      "missed_toast": "Missed it - you can still answer at the postbox for half points.",
+      "score_label": "SCORE",
+      "missed_heading": "Bonus questions you missed",
+      "missed_hint": "Optional, half points each. CoCo will add them to your blueprint.",
+      "scoreboard_title": "Today's top penguins",
+      "scoreboard_rank": "You placed #{rank} today with {score} points.",
+      "scoreboard_unranked": "You scored {score} points.",
+      "scoreboard_button": "CONTINUE",
+      "card_score": "{score} points",
+      "pop_text": "+{points}",
+      "progress": "BONUS {n}/{max}",
+      "brief_prefix": "Keep in mind what I told you:",
+      "docx_heading": "What you told CoCo"
+    }
   },
   "marketplace": {
     "_comment": "Live discovery needs NO private preview: SHOW AVAILABLE LISTINGS piped through RESULT_SCAN gives 188 importable listings in AWS_EU_WEST_2 (of 4327 total, 799 region-available). Measured 2026-08-17. The curated index stays as the offline-safe fallback.",
@@ -1172,9 +1220,6 @@
       "GZTDZ1PNFO": [
         "economy"
       ],
-      "GZT1ZFQ0JE5": [
-        "population"
-      ],
       "GZSNZ4PHA6": [
         "population"
       ],
@@ -1192,7 +1237,6 @@
       "uk": [
         "GZSTZ67BY9OQW",
         "GZ2FRZQNY1",
-        "GZT1ZFQ0JE5",
         "GZSOZ71OJH",
         "GZSVZ8MX1I",
         "GZSYZSRWU5",

@@ -106,6 +106,13 @@ BLANK_STATE = {
     "job_id": None,
     "started_at": None,
     "updated_at": None,
+    # True while a background workshop draft is running (see _compose).
+    "workshop_pending": False,
+    # Optional bonus objectives. Written ONLY by the bonus helpers under
+    # _bonus_lock, so their read-modify-write never races the main flow.
+    "bonus": {"next": None, "gen": 0, "generating_since": None,
+              "offered": 0, "answered": [], "missed": [], "late": False,
+              "failed": 0},
 }
 
 # Coarse industry inference. Instant and free, which matters against a
@@ -261,7 +268,7 @@ def write_state(patch, replace=False):
 # ---------------------------------------------------------------- cost logging
 
 def log_cost(cfg, kind, seconds, usage, ok, transport="exec", model=None,
-             error=None):
+             error=None, note=None):
     """Append-only spend trail with the real token counts exec reports. We do
     not cap the visitor, so this is the only way spend stays visible.
 
@@ -279,6 +286,8 @@ def log_cost(cfg, kind, seconds, usage, ok, transport="exec", model=None,
            "cache_read": u.get("cache_read_input_tokens"),
            "cache_write": u.get("cache_creation_input_tokens"),
            "ok": ok, "error": error}
+    if note:
+        rec["note"] = note
     try:
         with open(path, "a", encoding="utf-8") as f:
             f.write(json.dumps(rec) + "\n")
@@ -388,7 +397,7 @@ def run_exec(cfg, prompt, kind, job_id=None, use_mcp=False, timeout=None,
                 cur = read_state()
                 if cur.get("job_id") not in (None, job_id):
                     p.kill()
-                    return False, ""      # superseded by a newer message
+                    return False, "", {"transport": "exec", "ok": False}  # superseded
             try:
                 ev = json.loads(raw)
             except json.JSONDecodeError:
@@ -416,9 +425,11 @@ def run_exec(cfg, prompt, kind, job_id=None, use_mcp=False, timeout=None,
         if p.returncode == 0 and final:
             ok = True
     except FileNotFoundError:
-        return False, "CoCo CLI not found on PATH, so I cannot answer."
+        return False, "", {"transport": "exec", "ok": False,
+                           "error": "cortex CLI not found"}
     except Exception as e:                                       # noqa: BLE001
-        return False, f"Something went wrong reaching CoCo: {e}"
+        return False, "", {"transport": "exec", "ok": False,
+                           "error": str(e)[:200]}
 
     log_cost(cfg, kind, time.time() - started, usage, ok, "exec", model)
     meta = {"seconds": round(time.time() - started, 1), "usage": usage,
@@ -452,8 +463,52 @@ def sf_conn(cfg):
             _conn = None
         import snowflake.connector as sc                    # lazy: booth-only dep
         name = (cfg.get("snowflake") or {}).get("connection_name")
-        _conn = sc.connect(**({"connection_name": name} if name else {}))
+        # Keep-alive stops the session token expiring between visitors; without
+        # it a server left up overnight fails every COMPLETE with 390114.
+        _conn = sc.connect(client_session_keep_alive=True,
+                           **({"connection_name": name} if name else {}))
         return _conn
+
+
+def drop_conn():
+    """Discard the cached connection so the next sf_conn() reconnects."""
+    global _conn
+    with _conn_lock:
+        try:
+            if _conn is not None:
+                _conn.close()
+        except Exception:                                        # noqa: BLE001
+            pass
+        _conn = None
+
+
+# A SECOND long-lived connection for background work (bonus questions, the
+# scoreboard), so it never queues behind a visitor's own COMPLETE turn on the
+# shared session.
+_bg_conn = None
+_bg_lock = threading.Lock()
+
+
+def bg_conn(cfg, fresh=False):
+    global _bg_conn
+    with _bg_lock:
+        if fresh and _bg_conn is not None:
+            try:
+                _bg_conn.close()
+            except Exception:                                    # noqa: BLE001
+                pass
+            _bg_conn = None
+        if _bg_conn is not None:
+            try:
+                if not _bg_conn.is_closed():
+                    return _bg_conn
+            except Exception:                                    # noqa: BLE001
+                pass
+        import snowflake.connector as sc
+        name = (cfg.get("snowflake") or {}).get("connection_name")
+        _bg_conn = sc.connect(client_session_keep_alive=True,
+                              **({"connection_name": name} if name else {}))
+        return _bg_conn
 
 
 ACCOUNT = {"name": ""}
@@ -670,34 +725,19 @@ def run_complete(cfg, prompt, kind, job_id=None, model=None, timeout=None):
     started = time.time()
     write_state({"reasoning": []})
     reply, err, usage = "", "", {}
-    try:
-        cur = sf_conn(cfg).cursor()
+    for attempt in (1, 2):
         try:
-            # The three-argument form, not COMPLETE(model, prompt). The two-arg
-            # version returns a bare string with no usage, which is why every
-            # COMPLETE turn logged 0 input and 0 output tokens while the agentic
-            # turn logged real ones - so "cost per visitor" was only ever
-            # counting the Workshop. This form returns choices plus usage.
-            cur.execute(
-                "SELECT SNOWFLAKE.CORTEX.COMPLETE(%s, "
-                "ARRAY_CONSTRUCT(OBJECT_CONSTRUCT('role','user',"
-                "'content',%s)), OBJECT_CONSTRUCT()) ", (mdl, prompt))
-            row = cur.fetchone()
-            raw = row[0] if row else ""
-            if isinstance(raw, str):
-                raw = json.loads(raw) if raw.strip().startswith("{") else {}
-            if isinstance(raw, dict):
-                ch = (raw.get("choices") or [{}])[0]
-                reply = str(ch.get("messages") or ch.get("message") or "").strip()
-                u = raw.get("usage") or {}
-                usage = {"input_tokens": int(u.get("prompt_tokens") or 0),
-                         "output_tokens": int(u.get("completion_tokens") or 0)}
-            else:
-                reply = str(raw or "").strip()
-        finally:
-            cur.close()
-    except Exception as e:                                       # noqa: BLE001
-        err = str(e)[:200].replace("\n", " ")
+            reply, usage = _complete_once(cfg, mdl, prompt)
+            err = ""
+            break
+        except Exception as e:                                   # noqa: BLE001
+            err = str(e)[:200].replace("\n", " ")
+            # Expired or dropped session: reconnect once, then give up.
+            if attempt == 1 and ("390114" in err or "expired" in err.lower()
+                                 or "closed" in err.lower()):
+                drop_conn()
+                continue
+            break
 
     secs = time.time() - started
     ok = bool(reply) and not err
@@ -714,6 +754,36 @@ def run_complete(cfg, prompt, kind, job_id=None, model=None, timeout=None):
     if not ok:
         return False, "", meta
     return True, reply, meta
+
+
+def _complete_once(cfg, mdl, prompt, conn=None):
+    reply, usage = "", {}
+    cur = (conn or sf_conn(cfg)).cursor()
+    try:
+        # The three-argument form, not COMPLETE(model, prompt). The two-arg
+        # version returns a bare string with no usage, which is why every
+        # COMPLETE turn logged 0 input and 0 output tokens while the agentic
+        # turn logged real ones - so "cost per visitor" was only ever
+        # counting the Workshop. This form returns choices plus usage.
+        cur.execute(
+            "SELECT SNOWFLAKE.CORTEX.COMPLETE(%s, "
+            "ARRAY_CONSTRUCT(OBJECT_CONSTRUCT('role','user',"
+            "'content',%s)), OBJECT_CONSTRUCT()) ", (mdl, prompt))
+        row = cur.fetchone()
+        raw = row[0] if row else ""
+        if isinstance(raw, str):
+            raw = json.loads(raw) if raw.strip().startswith("{") else {}
+        if isinstance(raw, dict):
+            ch = (raw.get("choices") or [{}])[0]
+            reply = str(ch.get("messages") or ch.get("message") or "").strip()
+            u = raw.get("usage") or {}
+            usage = {"input_tokens": int(u.get("prompt_tokens") or 0),
+                     "output_tokens": int(u.get("completion_tokens") or 0)}
+        else:
+            reply = str(raw or "").strip()
+    finally:
+        cur.close()
+    return reply, usage
 
 
 def turn_budget(cfg, loc, timeout=None):
@@ -783,7 +853,11 @@ def run_turn(cfg, prompt, kind, loc=None, job_id=None, use_mcp=False,
             # has to record its own turn or the Workshop - the stop this whole
             # transport exists for - would vanish from the cost log entirely.
             log_cost(cfg, kind, meta.get("seconds") or 0, {}, ok, "warm",
-                     coco.get("model"))
+                     coco.get("model"),
+                     note=f"prompt_chars={len(prompt)} "
+                          f"waited={meta.get('waited')}s call={meta.get('seconds')}s")
+            print(f"[loco4coco] warm {kind}: prompt {len(prompt)} chars, "
+                  f"waited {meta.get('waited')}s, call {meta.get('seconds')}s")
             if ok:
                 return True, reply, meta
             print("[loco4coco] warm agent failed for %s (%s), falling back to "
@@ -825,8 +899,7 @@ def base_context(cfg, state):
     # 'other' label would read "in Something else." Empty simply drops the clause.
     ind = industry_prose(cfg, vis.get("industry"))
     ctx = [
-        f"You are CoCo, the Snowflake penguin, at the Snowflake World Tour "
-        f"{cfg['event']['city']} booth.",
+        f"You are CoCo, the Snowflake penguin, at the {event_label(cfg)} booth.",
         "This is a five-minute activation. Be warm, brief and concrete.",
         "Never use bullet points, headings, markdown or emoji - your words are "
         "shown in a small speech bubble.",
@@ -838,6 +911,14 @@ def base_context(cfg, state):
                    + (f" from {vis['company']}" if vis.get("company") else "")
                    + (f", in {ind}." if ind else "."))
     return ctx
+
+
+def event_label(cfg):
+    """The event as visitors see it, e.g. 'Hayadata'. Falls back to the SWT
+    naming when event.event_name is not set."""
+    ev = cfg.get("event") or {}
+    return (ev.get("event_name") or "").strip() or \
+        f"Snowflake World Tour {ev.get('city', '')}".strip()
 
 
 def fill(tmpl, cfg, state, **extra):
@@ -860,6 +941,9 @@ def fill(tmpl, cfg, state, **extra):
                       "eu": "must stay in the EU", "us_ok": "the US is acceptable too",
                       "unsure": "not yet decided"}.get(
                           _residency_key(vis), "not stated"),
+        # Bonus answers collected on the map so far, as "question -> answer"
+        # lines. Templates that reference {bonus} get them in the main brief.
+        "bonus": bonus_block(state) or "none answered",
     }
     vals.update(extra)
     out = tmpl
@@ -1759,6 +1843,9 @@ def build_coco_prompt(cfg, state):
     if title and url:
         lines += ["", "START FROM", f"Follow this guide as the base: {title}", url]
 
+    told = bonus_block(state)
+    if told:
+        lines += ["", "WHAT ELSE I TOLD YOU", told.replace("- ", "  - ")]
     lines += [
         "",
         "CONSTRAINTS",
@@ -2052,7 +2139,7 @@ def blueprint_docx(cfg, state):
     doc.add_paragraph(
         f"Prepared for {vis.get('first_name') or 'you'}"
         + (f" at {vis.get('company')}" if vis.get("company") else "")
-        + f" - Snowflake World Tour {cfg['event']['city']}.")
+        + f" - {event_label(cfg)}.")
     if poc.get("summary"):
         doc.add_paragraph(poc["summary"])
 
@@ -2079,6 +2166,15 @@ def blueprint_docx(cfg, state):
     if problem:
         doc.add_heading("The problem you described", level=2)
         doc.add_paragraph(problem)
+
+    told = ((state.get("bonus") or {}).get("answered")) or []
+    if told:
+        doc.add_heading(((cfg.get("bonus") or {}).get("copy") or {}).get(
+            "docx_heading") or "What you told CoCo", level=2)
+        for a in told:
+            p = doc.add_paragraph(style="List Bullet")
+            p.add_run(a["question"] + " ").bold = True
+            p.add_run(a["answer"])
 
     listings = state.get("joined_listings") or []
     joined = state.get("joined") or []
@@ -2308,18 +2404,32 @@ def log_session(cfg, state):
         "QA_REPAIRS": int(qa.get("repairs") or 0),
         "QA_RELEVANT": qa.get("relevant"),
         "QA_NOTE": qa.get("note", ""),
+        # Bonus objectives: every question asked (answered or not), how many
+        # were answered, and the server-side score the scoreboard reads.
+        "BONUS_ANSWERED": len(((state.get("bonus") or {}).get("answered")) or []),
+        "SCORE": compute_score(cfg, state, final=True),
+        "BONUS_QA": {
+            "answered": [{k: a.get(k) for k in ("question", "answer", "where", "points")}
+                         for a in ((state.get("bonus") or {}).get("answered")) or []],
+            "missed": [m.get("question") for m in
+                       ((state.get("bonus") or {}).get("missed")) or []],
+        },
     }
     bool_cols = ["QA_PASSED", "QA_RELEVANT"]
     arr_cols = ["DATA_HELD", "MARKETPLACE_JOINED", "FEATURES",
                 "CONSIDERATIONS", "PLATFORMS"]
-    cols = [k for k in payload if k not in arr_cols and k not in bool_cols]
+    var_cols = ["BONUS_QA"]
+    cols = [k for k in payload
+            if k not in arr_cols and k not in bool_cols and k not in var_cols]
     num = {"DURATION_SECONDS", "COCO_SECONDS",
-           "INPUT_TOKENS", "OUTPUT_TOKENS", "QA_REPAIRS"}
+           "INPUT_TOKENS", "OUTPUT_TOKENS", "QA_REPAIRS",
+           "BONUS_ANSWERED", "SCORE"}
     sel = [f"p:{c}::{'NUMBER' if c in num else 'TEXT'}" for c in cols]
     sel += [f"p:{c}::ARRAY" for c in arr_cols]
     sel += [f"p:{c}::BOOLEAN" for c in bool_cols]
+    sel += [f"p:{c}::VARIANT" for c in var_cols]
 
-    sql = (f"INSERT INTO {tbl} (SESSION_TS, {', '.join(cols + arr_cols + bool_cols)}) "
+    sql = (f"INSERT INTO {tbl} (SESSION_TS, {', '.join(cols + arr_cols + bool_cols + var_cols)}) "
            f"SELECT CURRENT_TIMESTAMP(), {', '.join(sel)} "
            f"FROM (SELECT PARSE_JSON(%s) AS p)")
     return sf_exec(cfg, sql, (json.dumps(payload, ensure_ascii=False),))
@@ -2427,10 +2537,17 @@ class QRDelivery:
     last_meta = None
 
     def deliver(self, cfg, state, job_id):
+        started = time.time()
+        self.last_meta = {"transport": "qr", "ok": False, "seconds": 0}
         docx = blueprint_docx(cfg, state)
         url, err = ("", "")
         if docx:
             url, err = stage_and_presign(cfg, docx)
+        # Recorded so the postbox TURNS row reflects the real outcome and time.
+        self.last_meta = {"transport": "qr", "ok": bool(url),
+                          "seconds": round(time.time() - started, 1)}
+        if err:
+            self.last_meta["error"] = err
         if url:
             write_state({"blueprint_url": url})
         vis = state.get("visitor") or {}
@@ -2515,12 +2632,21 @@ def run_checklist(cfg, loc_id, labels, job_id):
     prompt = "\n".join(base_context(cfg, state)) + "\n\n" + body
     ok, reply, meta = run_turn(cfg, prompt, loc_id, loc=loc, job_id=job_id)
     if not ok and not reply:
-        return
+        if read_state().get("job_id") not in (None, job_id):
+            return                          # superseded by a newer message
+        # Every route failed. End the turn anyway so the screen never sits on
+        # "thinking" forever; the visit carries on with what they picked.
+        reply = loc.get("fallback_reply") or (
+            "Good choices - I have noted those. Let's keep moving.")
     finish_turn(cfg, loc_id, ", ".join(labels), reply,
                 {"unlocked": unlock_next(cfg, loc_id, state)}, meta)
+    start_bonus_generation(cfg, state.get("session_id"))
 
 
-def run_workshop(cfg, text, job_id):
+def run_workshop(cfg, text, job_id, bg_session=None):
+    """`bg_session` set = background mode: the visitor has already been sent
+    on to the postbox, so this must ALWAYS leave a POC behind (never return
+    empty-handed) and must drop its result if the visitor was reset."""
     state = read_state()
     loc = (cfg.get("locations") or {}).get("workshop") or {}
     feature_list = ", ".join(sorted(load_features()))
@@ -2546,6 +2672,11 @@ def run_workshop(cfg, text, job_id):
                      "words:\n" + hint_block)
     except Exception:
         pass  # Guidance only. The prompt above already stands on its own.
+    extra = bonus_block(state)
+    if extra and "{bonus}" not in (loc.get("prompt") or ""):
+        # Older templates without the {bonus} slot still get the answers.
+        body += ("\n\nThey also answered these bonus questions. Use them to "
+                 "choose and shape the proof of concept:\n" + extra)
     # Optional invitation to actually USE a tool. Measured: --bypass alone
     # produces NO tool calls, because the feature list is injected and guides
     # are resolved server-side, so CoCo has no reason to reach for one. Inviting
@@ -2558,7 +2689,11 @@ def run_workshop(cfg, text, job_id):
     prompt = "\n".join(base_context(cfg, state)) + "\n\n" + body
     ok, raw, meta = run_turn(cfg, prompt, "workshop", loc=loc, job_id=job_id)
     if not ok and not raw:
-        return
+        if not bg_session:
+            return
+        raw = ""                          # fall through to the stub POC below
+    if bg_session and read_state().get("session_id") != bg_session:
+        return                              # reset while drafting: discard
 
     poc, reply = {}, raw
     m = re.search(r"\{.*\}", raw or "", re.S)
@@ -2603,12 +2738,23 @@ def run_workshop(cfg, text, job_id):
                                   "can actually get hold of."]}
         t, u = guide_for(cfg, "talk-to-my-data")
         poc["guide_title"], poc["guide_url"] = t, u
+        if bg_session and not reply:
+            reply = ((cfg.get("locations") or {}).get("workshop") or {}).get(
+                "background_ready") or "Your blueprint is ready at the postbox."
 
-    finish_turn(cfg, "workshop", text, reply,
-                {"poc": poc, "unlocked": unlock_next(cfg, "workshop", state),
-                 "poc_pending": bool(poc.get("archetype"))}, meta)
+    extra = {"poc": poc, "unlocked": unlock_next(cfg, "workshop", state),
+             "poc_pending": bool(poc.get("archetype")),
+             "workshop_pending": False}
+    now = read_state()
+    if bg_session and now.get("location") == "postbox" and now.get("thinking"):
+        # The visitor is already at the postbox and its send is running: do not
+        # clear its thinking flag or overwrite its reply with the bench's.
+        extra["thinking"] = True
+        extra["reply"] = now.get("reply") or ""     # TURNS still logs the real one
+    finish_turn(cfg, "workshop", text, reply, extra, meta)
     if poc.get("archetype"):
         threading.Thread(target=refine_poc, args=(cfg, text), daemon=True).start()
+    start_bonus_generation(cfg, state.get("session_id"))
 
 
 def refine_poc(cfg, text):
@@ -2640,8 +2786,9 @@ def refine_poc(cfg, text):
             f"They hold: {', '.join(state.get('held') or []) or 'unspecified'}.\n"
             f"They will attach: {', '.join(state.get('joined') or []) or 'nothing yet'}.\n"
             f"They asked the POC to: \"{text}\"\n"
-            f"It is a '{arche}' build called '{poc.get('poc_name') or 'their POC'}'.\n\n"
-            "Candidate considerations:\n" + listed + "\n\n"
+            f"It is a '{arche}' build called '{poc.get('poc_name') or 'their POC'}'.\n"
+            + (f"They also told us:\n{bonus_block(state)}\n" if bonus_block(state) else "")
+            + "\nCandidate considerations:\n" + listed + "\n\n"
             "Return ONLY minified JSON, no prose, no code fence, with exactly "
             "these keys: {\"summary\": 2 sentences on what it does and why it "
             "matters to THEM, \"first_step\": one concrete first action, "
@@ -2687,7 +2834,8 @@ def refine_poc(cfg, text):
                     picked.append(pool[n - 1])
             if picked:
                 poc["considerations"] = picked[:4]
-        write_state({"poc": poc, "poc_pending": False})
+        write_state({"poc": poc, "poc_pending": False,
+                     "poc_refined_at": time.time()})
     except Exception:                                             # noqa: BLE001
         # A background refinement must never take the booth down.
         write_state({"poc_pending": False})
@@ -2889,6 +3037,17 @@ def _qa_relevance(cfg, problem, poc):
 
 
 def run_send(cfg, job_id):
+    # Background workshop still drafting (the visitor beat it to the postbox):
+    # wait for it, bounded by its own budget, so the document has a real POC.
+    wloc = (cfg.get("locations") or {}).get("workshop") or {}
+    limit = float(wloc.get("timeout") or 60) + 30
+    t0 = time.time()
+    if read_state().get("workshop_pending"):
+        write_state({"reasoning": [wloc.get("finishing") or "Finishing your blueprint…"]})
+    while read_state().get("workshop_pending") and time.time() - t0 < limit:
+        time.sleep(0.5)
+    while read_state().get("poc_pending") and time.time() - t0 < limit + 8:
+        time.sleep(0.25)
     state = read_state()
 
     # Merge anything the 7th option found. The agentic search was fired in the
@@ -2910,6 +3069,18 @@ def run_send(cfg, job_id):
                 print(f"[loco4coco] 7th option added {len(add)} agentic listing(s)")
     except Exception as e:                                           # noqa: BLE001
         print(f"[loco4coco] agentic merge skipped (non-blocking): {e}")
+
+    # Bonus answers given after the POC was last refined (typically the
+    # postbox catch-up) are folded in now, so they reach the document. One
+    # fast COMPLETE call; refine_poc never raises.
+    poc0 = state.get("poc") or {}
+    told = ((state.get("bonus") or {}).get("answered")) or []
+    refined = state.get("poc_refined_at") or 0
+    if poc0.get("archetype") and any(a.get("at", 0) > refined for a in told):
+        wtext = next((t.get("text") for t in reversed(state.get("turns") or [])
+                      if t.get("location") == "workshop"), "") or ""
+        refine_poc(cfg, wtext)
+        state = read_state()
 
     # QA bot runs BEFORE delivery so its repairs land in the document the visitor
     # actually scans. It reviews the finished POC against their stated problem,
@@ -2949,6 +3120,7 @@ def run_send(cfg, job_id):
         err = str(e)[:300]                    # never block the handover on audit
     if ok:
         write_state({"logged": True, "log_error": ""})
+        invalidate_scoreboard()
     else:
         write_state({"logged": False, "log_error": err or "unknown"})
         print(f"[loco4coco] SESSIONS insert FAILED: {err}")
@@ -2961,6 +3133,329 @@ def run_send(cfg, job_id):
 
     finish_turn(cfg, "postbox", "send the blueprint", reply, {"stage": "done"},
                 getattr(transport, "last_meta", None))
+
+
+# ------------------------------------------------------------ bonus objectives
+#
+# Optional questions that spawn on the map while the visitor walks. Generated
+# by COMPLETE in the background from everything known so far, so the next one
+# is normally ready before the visitor is back on the map. Nothing in the main
+# flow ever waits on this: if generation fails, no bonus spawns.
+
+_bonus_lock = threading.Lock()
+_BONUS_ASKS_FOR_PII = re.compile(
+    r"\b(e-?mail|phone|mobile|your name|surname|home address|date of birth|"
+    r"passport|salary)\b", re.I)
+_BONUS_BANNED = re.compile(
+    r"\b(die|dies|dying|kill|killed|killing|suicide|cripple|crippled)\b", re.I)
+
+
+def _bonus_cfg(cfg):
+    return cfg.get("bonus") or {}
+
+
+def _bonus_mutate(fn):
+    """Read-modify-write the bonus sub-state atomically. `fn(b, state)` edits
+    `b` in place and returns a value. Only bonus code writes this key."""
+    with _bonus_lock:
+        st = read_state()
+        b = json.loads(json.dumps(st.get("bonus") or BLANK_STATE["bonus"]))
+        out = fn(b, st)
+        write_state({"bonus": b})
+        return out
+
+
+def bonus_block(state):
+    """The visitor's bonus answers as prompt lines, or "" if there are none."""
+    ans = ((state.get("bonus") or {}).get("answered")) or []
+    return "\n".join(f"- {a['question']} -> {a['answer']}" for a in ans)
+
+
+def _bonus_known(cfg, state):
+    vis = state.get("visitor") or {}
+    poc = state.get("poc") or {}
+    b = state.get("bonus") or {}
+    lines = [
+        f"Industry: {industry_prose(cfg, vis.get('industry')) or 'not stated'}",
+        f"Their problem, in their words: {vis.get('problem') or 'not stated'}",
+        f"Where the company is based: {vis.get('company_country') or 'not stated'}",
+        f"Data residency rule: {vis.get('residency') or 'not stated'}",
+        f"Where their data sits today: {', '.join(state.get('platforms') or []) or 'not stated'}",
+        f"Data they hold: {', '.join(state.get('held') or []) or 'not chosen yet'}",
+        f"Marketplace data they will join: {', '.join(state.get('joined') or []) or 'not chosen yet'}",
+    ]
+    if poc.get("poc_name"):
+        lines.append(f"Proof of concept so far: {poc.get('poc_name')} - "
+                     f"{poc.get('summary') or poc.get('archetype') or ''}")
+    asked = [f"- {a['question']} -> {a['answer']}" for a in b.get("answered") or []]
+    asked += [f"- {m['question']} -> (asked, not answered yet)"
+              for m in b.get("missed") or []]
+    if asked:
+        lines.append("Already asked:\n" + "\n".join(asked))
+    topics = [x.get("topic") for x in (b.get("answered") or []) + (b.get("missed") or [])
+              if x.get("topic")]
+    if topics:
+        lines.append("Topics already covered (do NOT ask about these again, "
+                     "in any wording): " + "; ".join(topics))
+    return "\n".join(lines)
+
+
+def _tokens(s):
+    return set(re.findall(r"[a-z0-9]{3,}", (s or "").lower()))
+
+
+def _jaccard(a, b):
+    a, b = _tokens(a), _tokens(b)
+    return len(a & b) / len(a | b) if a and b else 0.0
+
+
+def _validate_bonus(raw, previous):
+    """Shape and safety checks, plus a same-topic check. `previous` is a list
+    of earlier items ({question, topic, options}). Returns a clean item or None.
+
+    Word overlap on the question alone let paraphrases through ("which goal
+    matters most" vs "what would make this most valuable first"), so a repeat
+    is caught on the model's own topic label or on largely shared options."""
+    m = re.search(r"\{.*\}", raw or "", re.S)
+    if not m:
+        return None
+    try:
+        d = json.loads(m.group(0))
+    except json.JSONDecodeError:
+        return None
+    q = str(d.get("question") or "").strip()
+    opts = d.get("options")
+    if not q or len(q) > 110 or not isinstance(opts, list):
+        return None
+    clean = []
+    for o in opts:
+        o = str(o or "").strip()
+        if o and len(o) <= 40 and o.lower() not in {c.lower() for c in clean}:
+            clean.append(o)
+    if not 2 <= len(clean) <= 4:
+        return None
+    text = q + " " + " ".join(clean)
+    if _BONUS_ASKS_FOR_PII.search(text) or _BONUS_BANNED.search(text):
+        return None
+    topic = str(d.get("topic") or "").strip()[:60]
+    if not topic:
+        return None
+    for p in previous:
+        if _jaccard(q, p.get("question")) >= 0.6:
+            return None
+        if p.get("topic") and (topic.lower() == p["topic"].lower()
+                               or _jaccard(topic, p["topic"]) >= 0.5):
+            return None
+        if _jaccard(" ".join(clean), " ".join(p.get("options") or [])) >= 0.45:
+            return None
+    return {"id": uuid.uuid4().hex[:8], "question": q, "options": clean,
+            "topic": topic, "why": str(d.get("why") or "")[:200]}
+
+
+def start_bonus_generation(cfg, session_id):
+    """Queue the next bonus question in the background, if one is due."""
+    bc = _bonus_cfg(cfg)
+    if not bc.get("enabled") or not session_id:
+        return
+    stale = float(bc.get("generate_timeout") or 8) * 3
+
+    def claim(b, st):
+        if st.get("session_id") != session_id or st.get("queued"):
+            return None
+        if st.get("stage") in ("attract", "done"):
+            return None
+        if b.get("next"):
+            return None
+        since = b.get("generating_since")
+        if since and time.time() - since < stale:
+            return None
+        if len(b.get("answered") or []) >= int(bc.get("max_answered") or 5):
+            return None
+        if int(b.get("offered") or 0) >= int(bc.get("max_offered") or 7):
+            return None
+        b["gen"] = int(b.get("gen") or 0) + 1
+        b["generating_since"] = time.time()
+        return b["gen"]
+
+    gen = _bonus_mutate(claim)
+    if gen:
+        threading.Thread(target=_generate_bonus, args=(cfg, session_id, gen),
+                         daemon=True).start()
+
+
+def _generate_bonus(cfg, session_id, gen):
+    bc = _bonus_cfg(cfg)
+    started = time.time()
+    st = read_state()
+    b = st.get("bonus") or {}
+    previous = [{"question": x.get("question"), "topic": x.get("topic"),
+                 "options": x.get("options")}
+                for x in (b.get("answered") or []) + (b.get("missed") or [])]
+    prompt = str(bc.get("prompt") or "").replace("{known}", _bonus_known(cfg, st))
+    mdl = (cfg.get("coco") or {}).get("complete_model") or "openai-gpt-5"
+    raw, usage, err = "", {}, ""
+    # Direct call, not run_complete: run_complete clears the reasoning tray,
+    # which would wipe what the visitor is watching at a stop.
+    for attempt in (1, 2):
+        try:
+            raw, usage = _complete_once(cfg, mdl, prompt,
+                                        conn=bg_conn(cfg, fresh=attempt == 2))
+            err = ""
+            break
+        except Exception as e:                                   # noqa: BLE001
+            err = str(e)[:200].replace("\n", " ")
+            if attempt == 1 and ("390114" in err or "expired" in err.lower()
+                                 or "closed" in err.lower()):
+                continue
+            break
+    item = None if err else _validate_bonus(raw, previous)
+    secs = time.time() - started
+    late = secs > float(bc.get("generate_timeout") or 8) * 2
+    log_cost(cfg, "bonus_question", secs, usage, bool(item), "complete", mdl,
+             error=err or (None if item else "invalid or late"),
+             note=(item or {}).get("why") or (raw or "")[:200])
+
+    def land(b, st):
+        b["generating_since"] = None
+        if st.get("session_id") != session_id or int(b.get("gen") or 0) != gen:
+            return                          # a reset or newer request won
+        if not item or late or st.get("queued"):
+            b["failed"] = int(b.get("failed") or 0) + 1
+            return
+        b["next"] = item
+        b["offered"] = int(b.get("offered") or 0) + 1
+    _bonus_mutate(land)
+
+
+def compute_score(cfg, state, final=False):
+    """Server-side score. Never decreases within a visit. `final` counts the
+    postbox as done, for the SESSIONS row written just before that turn ends."""
+    sc = _bonus_cfg(cfg).get("scoring") or {}
+    b = state.get("bonus") or {}
+    ans = b.get("answered") or []
+    pts = sum(int(a.get("points") or 0) for a in ans)
+    stops = {t.get("location") for t in state.get("turns") or []}
+    if final:
+        stops.add("postbox")
+    pts += int(sc.get("stop") or 0) * len(
+        stops & {"library", "marketplace", "workshop", "postbox"})
+    limit = (cfg.get("event") or {}).get("time_limit_seconds")
+    started = state.get("started_at")
+    if (limit and started and "postbox" in stops
+            and (time.time() if final else (state.get("updated_at") or time.time()))
+            - started <= limit):
+        pts += int(sc.get("under_time") or 0)
+    if len(ans) >= int(_bonus_cfg(cfg).get("max_answered") or 5):
+        pts += int(sc.get("all_answered") or 0)
+    return pts
+
+
+def map_points(cfg, left_ms):
+    """Points for a bonus answered on the map. Never below scoring.map (100);
+    the faster the visitor reached it, the bigger the multiplier, up to
+    scoring.map_max_multiplier at the instant it spawned. Rounded to tens."""
+    bc = _bonus_cfg(cfg)
+    sc = bc.get("scoring") or {}
+    base = int(sc.get("map") or 100)
+    mx = float(sc.get("map_max_multiplier") or 1)
+    total = float(bc.get("spawn_seconds") or 7) * 1000
+    try:
+        frac = min(1.0, max(0.0, float(left_ms) / total))
+    except (TypeError, ValueError):
+        frac = 0.0
+    return int(round(base * (1 + (mx - 1) * frac) / 10.0) * 10)
+
+
+def bonus_answer(cfg, item_id, choice, where, left_ms=0):
+    """Record an answer. Returns (ok, error, points)."""
+    sc = _bonus_cfg(cfg).get("scoring") or {}
+
+    def apply(b, st):
+        if st.get("queued"):
+            return False, "blueprint already sent", 0
+        if len(b.get("answered") or []) >= int(_bonus_cfg(cfg).get("max_answered") or 5):
+            return False, "bonus limit reached", 0
+        nxt = b.get("next") or {}
+        missed = b.get("missed") or []
+        if where == "map" and nxt.get("id") == item_id:
+            item = nxt
+            # The client reports how much of the countdown was left; it is
+            # clamped to the configured window, so the most it can claim is
+            # the top multiplier.
+            pts = map_points(cfg, left_ms)
+        elif where == "postbox" and any(m["id"] == item_id for m in missed):
+            item = next(m for m in missed if m["id"] == item_id)
+            pts = int(sc.get("postbox") or 0)
+        else:
+            return False, "unknown bonus", 0
+        # Validate BEFORE touching state: a rejected tap must not consume it.
+        if choice not in item.get("options", []):
+            return False, "not one of the options", 0
+        if where == "map":
+            b["next"] = None
+        else:
+            b["missed"] = [m for m in missed if m["id"] != item_id]
+        b.setdefault("answered", []).append(
+            {"id": item_id, "question": item["question"], "answer": choice,
+             "topic": item.get("topic"), "options": item.get("options"),
+             "where": where, "points": pts, "at": time.time()})
+        return True, "", pts
+    return _bonus_mutate(apply)
+
+
+def bonus_miss(cfg, item_id):
+    def apply(b, st):
+        nxt = b.get("next") or {}
+        if nxt.get("id") != item_id:
+            return False
+        b["next"] = None
+        b.setdefault("missed", []).append(
+            {k: nxt.get(k) for k in ("id", "question", "options", "topic")})
+        return True
+    return _bonus_mutate(apply)
+
+
+_board_cache = {"at": 0.0, "rows": None}
+
+
+def invalidate_scoreboard():
+    _board_cache["at"] = 0.0
+
+
+def scoreboard(cfg, session_id, limit=10):
+    """Today's board for THIS account, read from SESSIONS. Nothing local."""
+    if time.time() - _board_cache["at"] > 15 or _board_cache["rows"] is None:
+        sf = cfg.get("snowflake") or {}
+        tbl = (f"{sf.get('database')}.{sf.get('schema')}."
+               f"{sf.get('sessions_table', 'SESSIONS')}")
+        sql = (f"SELECT FIRST_NAME, SCORE, SESSION_ID FROM {tbl} "
+               "WHERE SE_OPERATOR = CURRENT_ACCOUNT() "
+               "AND SESSION_TS >= DATE_TRUNC('day', CURRENT_TIMESTAMP()) "
+               "AND SCORE IS NOT NULL ORDER BY SCORE DESC, SESSION_TS ASC "
+               "LIMIT 500")
+        rows = None
+        for attempt in (1, 2):
+            try:
+                cur = bg_conn(cfg, fresh=attempt == 2).cursor()
+                try:
+                    cur.execute(sql)
+                    rows = cur.fetchall()
+                finally:
+                    cur.close()
+                break
+            except Exception as e:                               # noqa: BLE001
+                msg = str(e)
+                if attempt == 1 and ("390114" in msg or "expired" in msg.lower()
+                                     or "closed" in msg.lower()):
+                    continue
+                print(f"[loco4coco] scoreboard query failed: {msg[:150]}")
+                return None
+        _board_cache.update(at=time.time(), rows=rows or [])
+    rows = _board_cache["rows"]
+    rank = next((i + 1 for i, r in enumerate(rows) if r[2] == session_id), None)
+    return {"top": [{"name": r[0] or "Penguin", "score": int(r[1] or 0),
+                     "you": r[2] == session_id} for r in rows[:limit]],
+            "rank": rank, "total": len(rows)}
 
 
 # ------------------------------------------------------------------ HTTP server
@@ -2999,7 +3494,29 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/api/state":
-            return self._json(read_state())
+            cfg, st = load_config(), read_state()
+            # Self-heal: a draft flag older than the workshop budget (+ margin)
+            # has no thread behind it any more (server restarted, or a crash),
+            # so clear it rather than leave the postbox "preparing" forever.
+            wl = (cfg.get("locations") or {}).get("workshop") or {}
+            if (st.get("workshop_pending") or st.get("poc_pending")) and \
+                    st.get("workshop_started") and \
+                    time.time() - st["workshop_started"] > \
+                    float(wl.get("timeout") or 60) + 90:
+                st = write_state({"workshop_pending": False, "poc_pending": False})
+            b = dict(st.get("bonus") or {})
+            if b.get("next"):
+                b["next"] = {k: v for k, v in b["next"].items() if k != "why"}
+            st["bonus"] = b
+            st["score"] = compute_score(cfg, st)
+            return self._json(st)
+        if path == "/api/scoreboard":
+            cfg, st = load_config(), read_state()
+            board = scoreboard(cfg, st.get("session_id"))
+            if board is None:
+                return self._json({"ok": False}, 503)
+            board.update(ok=True, score=compute_score(cfg, st))
+            return self._json(board)
         if path == "/api/config":
             return self._json(load_config())
         if path == "/api/options":
@@ -3081,6 +3598,8 @@ class Handler(BaseHTTPRequestHandler):
             "/api/admin/restart": self._admin_restart,
             "/api/state": self._patch,
             "/api/card": self._card,
+            "/api/bonus/answer": self._bonus_answer,
+            "/api/bonus/miss": self._bonus_miss,
         }
         fn = routes.get(path)
         if not fn:
@@ -3195,6 +3714,14 @@ class Handler(BaseHTTPRequestHandler):
                        for k in ("first_name", "company", "industry", "problem"))
             ),
             "stage": st.get("stage") or "",
+            "bonus": {
+                "enabled": bool((cfg.get("bonus") or {}).get("enabled")),
+                "offered": int((st.get("bonus") or {}).get("offered") or 0),
+                "answered": len((st.get("bonus") or {}).get("answered") or []),
+                "missed": len((st.get("bonus") or {}).get("missed") or []),
+                "failed": int((st.get("bonus") or {}).get("failed") or 0),
+                "score": compute_score(cfg, st),
+            },
         })
 
     def _admin_apply(self):
@@ -3274,7 +3801,34 @@ class Handler(BaseHTTPRequestHandler):
         patch = self._body()
         if not isinstance(patch, dict):
             return self._json({"error": "expected an object"}, 400)
+        # The bonus record drives the server-side score; the client never
+        # writes it directly.
+        patch.pop("bonus", None)
         return self._json(write_state(patch))
+
+    def _bonus_answer(self):
+        b = self._body()
+        if not isinstance(b, dict):
+            return self._json({"error": "invalid json"}, 400)
+        cfg = load_config()
+        where = "postbox" if b.get("where") == "postbox" else "map"
+        ok, err, pts = bonus_answer(cfg, str(b.get("id") or "")[:16],
+                                    str(b.get("choice") or "")[:60], where,
+                                    b.get("left_ms") or 0)
+        st = read_state()
+        if ok and where == "map":
+            start_bonus_generation(cfg, st.get("session_id"))
+        return self._json({"ok": ok, "error": err, "points": pts,
+                           "score": compute_score(cfg, st)}, 200 if ok else 409)
+
+    def _bonus_miss(self):
+        b = self._body()
+        if not isinstance(b, dict):
+            return self._json({"error": "invalid json"}, 400)
+        cfg = load_config()
+        ok = bonus_miss(cfg, str(b.get("id") or "")[:16])
+        start_bonus_generation(cfg, read_state().get("session_id"))
+        return self._json({"ok": bool(ok)}, 200 if ok else 409)
 
     def _suggest(self):
         """Write a starting problem statement FOR the visitor, on request.
@@ -3374,7 +3928,11 @@ class Handler(BaseHTTPRequestHandler):
                         "problem": problem},
             "stage": "library", "unlocked": ["library"], "reasoning": [],
             "session_id": uuid.uuid4().hex,
+            # A new visitor never inherits the last one's draft flags or POC.
+            "workshop_pending": False, "poc_pending": False,
+            "workshop_started": None,
         })
+        start_bonus_generation(cfg, st.get("session_id"))
         # Tier 0 is NO LONGER fired here. Racing the Library with a 75-110s call
         # never worked, and the curated six must be deterministic at the stall.
         # Agentic search is now the 7th option: triggered only when the visitor
@@ -3457,6 +4015,30 @@ class Handler(BaseHTTPRequestHandler):
         cfg = load_config()
         job = uuid.uuid4().hex
         wloc = (cfg.get("locations") or {}).get("workshop") or {}
+        if wloc.get("background"):
+            st0 = read_state()
+            # One draft per visitor: a second submit would race the first.
+            if st0.get("workshop_pending") or (st0.get("poc") or {}).get("poc_name"):
+                return self._json({"error": "workshop already submitted"}, 409)
+            # Do not hold the visitor at the bench. CoCo acknowledges at once,
+            # the postbox unlocks, and the agent drafts the POC while they walk
+            # (and collect bonuses). Its real reply lands in the bubble when it
+            # is ready, and the postbox waits for it only if they get there
+            # first. job_id is not passed to the worker: the postbox sets a new
+            # one, which must not count as superseding this draft.
+            st0 = read_state()
+            write_state({"thinking": False, "reasoning": [],
+                         "reply": wloc.get("background_ack") or "On it.",
+                         "transport": wloc.get("transport") or "exec",
+                         "job_id": job, "location": "workshop", "stage": "workshop",
+                         "workshop_pending": True, "poc_pending": True,
+                         "workshop_started": time.time(),
+                         "unlocked": unlock_next(cfg, "workshop", st0)})
+            threading.Thread(target=run_workshop,
+                             args=(cfg, text, None, st0.get("session_id")),
+                             daemon=True).start()
+            start_bonus_generation(cfg, st0.get("session_id"))
+            return self._json({"accepted": True, "job_id": job, "background": True})
         write_state({"thinking": True, "reply": "", "reasoning": [],
                      "transport": wloc.get("transport") or "exec",
                      "job_id": job, "location": "workshop", "stage": "workshop"})
@@ -3492,7 +4074,7 @@ class Handler(BaseHTTPRequestHandler):
         # the delivery that cannot fail, and the outbox draft is a bonus an
         # operator drains when there IS an address. Requiring one here is what
         # made SEND MY POC dead-end with a 400 on every press.
-        if not st.get("poc"):
+        if not st.get("poc") and not st.get("workshop_pending"):
             return self._json({"error": "no POC to send yet"}, 400)
         # Already delivered for this visitor: hand back the same result rather
         # than re-staging the document and logging a duplicate SESSIONS row.
@@ -3587,6 +4169,13 @@ def main():
         write_state(dict(BLANK_STATE))
 
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
+    # Nothing can be drafting at startup: a pending flag left in state.json by
+    # a previous process (killed mid-draft) would otherwise strand the visitor.
+    try:
+        if os.path.exists(STATE_PATH):
+            write_state({"workshop_pending": False, "poc_pending": False})
+    except Exception:                                            # noqa: BLE001
+        pass
     print(f"Loco4CoCo companion running at http://{args.host}:{args.port}/")
     print(f"  event     : {cfg['event']['city']} ({cfg['event']['language']})")
     print(f"  account   : {cfg['snowflake']['connection_name']}")
@@ -3673,10 +4262,21 @@ def main():
         threading.Thread(target=_watchdog, daemon=True).start()
         print(f"  idle stop : after {idle_min} min with no requests")
     print("Ctrl-C to stop.")
+    # A plain `kill` (SIGTERM) used to bypass the KeyboardInterrupt path, so the
+    # warm agent's `cortex mcp serve` child outlived every restart. Treat
+    # SIGTERM like Ctrl-C and always stop the agent on the way out.
+    import signal
+    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         print("\nstopped")
+    finally:
+        try:
+            if agent_pool._agent is not None:
+                agent_pool._agent.stop()
+        except Exception:                                        # noqa: BLE001
+            pass
 
 
 if __name__ == "__main__":

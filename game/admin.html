@@ -82,6 +82,7 @@
       <dt>Model proven</dt><dd id="s-model-ok">&mdash;</dd>
       <dt>Warm agent</dt><dd id="s-warm">&mdash;</dd>
       <dt>Visitor</dt><dd id="s-visitor">&mdash;</dd>
+      <dt>Bonus questions</dt><dd id="s-bonus">&mdash;</dd>
     </dl>
     <p class="note">The marketplace region is where your <em>visitors</em> are, and
       decides which datasets get recommended. It is not this account's region, which
@@ -214,6 +215,15 @@ function paint(s) {
   const v = $('s-visitor');
   v.textContent = s.visitor_active ? ('in progress — ' + (s.stage || '?')) : 'none';
   v.className = s.visitor_active ? 'ok' : 'idle';
+  // Bonus objectives for the current visitor. Failed generations are not an
+  // error for the stand: no bonus spawns and the visit is unaffected.
+  const b = s.bonus || {}, bn = $('s-bonus');
+  if (!b.enabled) { bn.textContent = 'off'; bn.className = 'idle'; }
+  else {
+    bn.textContent = `offered ${b.offered} · answered ${b.answered} · missed ${b.missed}`
+      + ` · generation failures ${b.failed} · score ${b.score}`;
+    bn.className = b.failed > b.offered ? 'idle' : 'ok';
+  }
 }
 
 async function refresh() {

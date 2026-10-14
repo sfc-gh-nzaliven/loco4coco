@@ -146,7 +146,6 @@ Profiles: **uk** (London eu-west-2), **fr** (Paris eu-west-3), **de** (Frankfurt
 | [UK (England and Wales only) Census 2021 - Trial](https://app.snowflake.com/marketplace/listing/GZSVZAJO3/jaywing-uk-england-and-wales-only-census-2021-trial) | Jaywing | Free | `GZSVZAJO3` | AWS_EU_WEST_2 |
 | [CARTO Boundaries](https://app.snowflake.com/marketplace/listing/GZT0Z4CM1E9L4/carto-carto-boundaries) | CARTO | Free | `GZT0Z4CM1E9L4` | AWS_EU_WEST_2 |
 | [Spatial Features (GBR, Quadgrid 15 and H3 Res. 8)](https://app.snowflake.com/marketplace/listing/GZT0ZKUCHKL) | CARTO | Free | `GZT0ZKUCHKL` | AWS_EU_WEST_2 |
-| [GLP-1 Social Conversations Sample Dataset](https://app.snowflake.com/marketplace/listing/GZT1ZFQ0JE5) | Socialgist | Free | `GZT1ZFQ0JE5` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
 | [American Community Survey, 2016](https://app.snowflake.com/marketplace/listing/GZSNZ4PHA6) | data.world, Inc | Free | `GZSNZ4PHA6` | ALL |
 
 ## uk / media / reserve

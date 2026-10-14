@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Smoke test: drive one full visitor through the API and assert the invariants."""
-import json, os, re, shutil, subprocess, sys, time, urllib.request
+import json, os, re, shutil, subprocess, sys, time, urllib.error, urllib.request
 
 BASE = "http://127.0.0.1:4747"
 GAME = os.path.dirname(os.path.abspath(__file__))
@@ -28,6 +28,30 @@ def wait(label, limit=180):
         time.sleep(2)
         if not state().get("thinking"):
             return round(time.time() - t0, 1)
+    return None
+
+
+def get(path):
+    with urllib.request.urlopen(BASE + path, timeout=60) as r:
+        return json.loads(r.read() or b"{}")
+
+
+def post_ok(path, obj=None):
+    """POST that returns the JSON body even on a 4xx, for negative checks."""
+    try:
+        return post(path, obj)
+    except urllib.error.HTTPError as e:
+        return json.loads(e.read() or b"{}")
+
+
+def next_bonus(limit=30):
+    """Wait for the background generator to queue a bonus question."""
+    t0 = time.time()
+    while time.time() - t0 < limit:
+        nb = (get("/api/state").get("bonus") or {}).get("next")
+        if nb:
+            return nb
+        time.sleep(1)
     return None
 
 
@@ -65,6 +89,24 @@ print(f"library  {timings['library']}s : {s['reply'][:88]}")
 if "marketplace" not in s["unlocked"]:
     fails.append("marketplace did not unlock")
 
+# --- bonus objectives: answer one on the map ---------------------------------
+bonus_on = bool((json.load(open(os.path.join(GAME, "config.json"),
+                                encoding="utf-8")).get("bonus") or {}).get("enabled"))
+b1 = next_bonus() if bonus_on else None
+if bonus_on:
+    if not b1:
+        fails.append("no bonus question was generated within 30s of intake")
+    else:
+        print(f"bonus 1        : {b1['question']} {b1['options']}")
+        bad = post_ok("/api/bonus/answer", {"id": b1["id"], "choice": "not an option",
+                                            "where": "map"})
+        if bad.get("ok"):
+            fails.append("bonus accepted an answer that was not one of its options")
+        r1 = post_ok("/api/bonus/answer", {"id": b1["id"], "choice": b1["options"][0],
+                                           "where": "map"})
+        if not r1.get("ok"):
+            fails.append(f"bonus map answer rejected: {r1.get('error')}")
+
 # Marketplace options are now REAL listings read from the verified index, so
 # pick whatever the running config actually offers rather than hard-coding
 # titles that drift whenever the index is recurated.
@@ -85,8 +127,25 @@ timings["marketplace"] = wait("marketplace")
 s = state()
 print(f"market   {timings['marketplace']}s : {s['reply'][:88]}")
 
+# --- bonus objectives: miss one (it must reappear for the postbox) -----------
+b2 = next_bonus() if bonus_on else None
+if bonus_on:
+    if not b2:
+        fails.append("no second bonus question was generated")
+    else:
+        print(f"bonus 2 missed : {b2['question']}")
+        if b1 and b2["question"] == b1["question"]:
+            fails.append("bonus generator repeated a question")
+        if not post_ok("/api/bonus/miss", {"id": b2["id"]}).get("ok"):
+            fails.append("bonus miss was not recorded")
+
 post("/api/compose", {"text": "spot customers heading for trouble before they miss a payment"})
 timings["workshop"] = wait("workshop")
+# Background workshop: the bench answers at once and the POC lands later.
+t0 = time.time()
+while state().get("workshop_pending") and time.time() - t0 < 120:
+    time.sleep(1)
+timings["workshop"] = round((timings["workshop"] or 0) + time.time() - t0, 1)
 s = state()
 poc = s["poc"]
 print(f"workshop {timings['workshop']}s : {poc.get('poc_name')}")
@@ -101,6 +160,17 @@ if len(poc.get("considerations") or []) < 2:
     fails.append(f"expected 2+ considerations, got {poc.get('considerations')}")
 if not poc.get("features"):
     fails.append("no features survived the closed-list filter")
+
+# --- bonus objectives: catch the missed one up at the postbox ----------------
+if bonus_on and b2:
+    missed = (get("/api/state").get("bonus") or {}).get("missed") or []
+    if not any(m["id"] == b2["id"] for m in missed):
+        fails.append("missed bonus was not offered at the postbox")
+    else:
+        r2 = post_ok("/api/bonus/answer", {"id": b2["id"], "choice": b2["options"][-1],
+                                           "where": "postbox"})
+        if not r2.get("ok"):
+            fails.append(f"postbox bonus answer rejected: {r2.get('error')}")
 
 post("/api/send")
 timings["postbox"] = wait("postbox")
@@ -182,6 +252,35 @@ if n_sessions != 1:
     fails.append(f"expected exactly 1 SESSIONS row, found {n_sessions}")
 if n_turns != 4:
     fails.append(f"expected 4 TURNS rows (one per location), found {n_turns}")
+
+if bonus_on:
+    sc = (cfg.get("bonus") or {}).get("scoring") or {}
+    want_answered = int(bool(b1)) + int(bool(b2))
+    q = (f"SELECT SCORE, BONUS_ANSWERED, BONUS_QA FROM {db}.{sch}.SESSIONS "
+         f"WHERE SESSION_ID = '{session_id}'")
+    r = subprocess.run([_snow_binary(), "sql", "-q", q, "--format", "json", "-c", conn],
+                       capture_output=True, text=True, timeout=120)
+    row = {}
+    try:
+        out = json.loads(r.stdout or "[]")
+        row = (out[0] if out else {}) if isinstance(out, list) else out
+    except json.JSONDecodeError:
+        pass
+    print(f"bonus row      : score={row.get('SCORE')} answered={row.get('BONUS_ANSWERED')}")
+    if int(row.get("BONUS_ANSWERED") or -1) != want_answered:
+        fails.append(f"SESSIONS.BONUS_ANSWERED is {row.get('BONUS_ANSWERED')}, "
+                     f"expected {want_answered}")
+    floor = 4 * int(sc.get("stop") or 0) + int(bool(b1)) * int(sc.get("map") or 0) \
+        + int(bool(b2)) * int(sc.get("postbox") or 0)
+    if int(row.get("SCORE") or 0) < floor:
+        fails.append(f"SESSIONS.SCORE {row.get('SCORE')} is below the expected {floor}")
+    blob_qa = json.dumps(row.get("BONUS_QA") or "")
+    if b1 and b1["question"][:20] not in blob_qa:
+        fails.append("BONUS_QA does not contain the answered question")
+    board = get("/api/scoreboard")
+    print(f"scoreboard     : rank {board.get('rank')} of {board.get('total')}")
+    if not board.get("ok") or not board.get("rank"):
+        fails.append("scoreboard did not rank this session")
 
 post("/api/reset")
 blob = json.dumps(state()).lower()

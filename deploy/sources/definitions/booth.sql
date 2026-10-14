@@ -110,7 +110,11 @@ DEFINE TABLE {{db}}.{{schema}}.SESSIONS (
   QA_PASSED           BOOLEAN       COMMENT 'TRUE when the QA bot found no flags and relevance was not judged false',
   QA_REPAIRS          NUMBER(4,0)   COMMENT 'How many fixes the QA bot applied to this blueprint',
   QA_RELEVANT         BOOLEAN       COMMENT 'Model relevance verdict; NULL when the check was off or did not complete',
-  QA_NOTE             TEXT          COMMENT 'Short list of the QA checks that fired'
+  QA_NOTE             TEXT          COMMENT 'Short list of the QA checks that fired',
+  -- Appended for bonus objectives (CREATE OR ALTER only allows appends).
+  BONUS_QA            VARIANT       COMMENT 'Bonus questions answered (question, answer, where, points) and missed',
+  BONUS_ANSWERED      NUMBER        COMMENT 'How many bonus questions were answered',
+  SCORE               NUMBER        COMMENT 'Server-side game score; the scoreboard reads this'
 )
   COMMENT = 'One row per booth visitor.';
 

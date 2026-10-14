@@ -180,6 +180,24 @@
   .ov { position:fixed; inset:0; z-index:40; display:none; align-items:center;
     justify-content:center; background:rgba(44,52,68,.9); }
   .ov.on { display:flex; }
+  /* Bonus score pop: floats up from where the points were won. */
+  .scorepop { position:fixed; z-index:80; pointer-events:none; transform:translate(-50%,-50%);
+    font:800 52px/1 ui-monospace,monospace; color:var(--warm);
+    text-shadow:0 3px 0 rgba(25,29,39,.85),0 0 18px rgba(237,141,48,.55);
+    animation:scorepop 1.6s ease-out forwards; }
+  .scorepop.small { font-size:20px; color:var(--edge); animation-duration:1.5s; }
+  @keyframes scorepop {
+    0% { opacity:0; transform:translate(-50%,-30%) scale(.4); }
+    18% { opacity:1; transform:translate(-50%,-60%) scale(1.25); }
+    35% { transform:translate(-50%,-70%) scale(1); }
+    100% { opacity:0; transform:translate(-50%,-190%) scale(1); } }
+  #h-score { display:inline-block; }
+  /* Indeterminate bar shown while the background workshop is still drafting. */
+  .bp-prep { height:8px; margin:18px 0 8px; border-radius:4px; overflow:hidden;
+    background:var(--line); position:relative; }
+  .bp-prep i { position:absolute; top:0; bottom:0; width:35%; border-radius:4px;
+    background:var(--warm); animation:bpprep 1.2s ease-in-out infinite; }
+  @keyframes bpprep { 0% { left:-35%; } 100% { left:100%; } }
   /* POV variant: the interior scene shows behind, so the backdrop is only a
      soft vignette and the card sits low, like a surface on the desk. */
   /* POV variant: the interior scene fills the stage and the panel docks as a
@@ -547,6 +565,7 @@
   <div id="hud-meta" class="rail">
     <span class="mk">Progress</span><span class="mv" id="h-col">0 / 4</span>
     <span class="mk">Time</span><span class="mv" id="h-time">0:00</span>
+    <span class="mk" id="h-scorek"></span><span class="mv" id="h-score"></span>
   </div>
 
   <div id="stagewrap">
@@ -570,6 +589,16 @@
       <div class="go" style="margin-top:12px">
         <button class="primary" id="a-go">ASK COCO</button>
         <button id="a-skip">SKIP THIS</button></div>
+    </div></div>
+
+    <!-- Bonus question. Optional: never opens itself, only when the visitor
+         walks onto a bonus object. No answer timer. -->
+    <div class="ov" id="ov-bonus"><div class="card" style="border-color:var(--warm);width:min(560px,94vw)">
+      <h2 id="bq-head" style="color:var(--warm)"></h2>
+      <div class="q" id="bq-q" style="margin-top:6px"></div>
+      <div class="hint" id="bq-hint" style="margin-top:4px"></div>
+      <div class="opts chips" id="bq-opts" style="margin-top:12px"></div>
+      <div class="go" style="margin-top:12px"><button id="bq-skip"></button></div>
     </div></div>
 
     <!-- Opening beat 1: the arctic title card -->
@@ -689,6 +718,9 @@
     <h2 id="bp-h2">Ready to post</h2>
     <div class="sub" id="bp-sub"></div>
     <div id="bp"></div>
+    <!-- Bonus questions missed on the map: optional, half points, never gates
+         the button below. Built with textContent only. -->
+    <div id="bp-bonus" style="display:none;margin-top:12px"></div>
     <!-- Tier 2 handover. This block is the thing that cannot fail: it is the
          only way the visitor takes the document away from the stand. -->
     <div id="bp-hand">
@@ -702,6 +734,12 @@
     <div class="go"><button class="primary" id="bp-send">CREATE MY BLUEPRINT</button>
       <span class="keys" id="bp-keys">Builds your document and your QR code</span></div>
   </div></div>
+  <div class="ov" id="ov-board"><div class="card" style="max-width:460px;text-align:center;padding:24px">
+    <h2 id="sb-title" style="color:var(--edge)"></h2>
+    <ol id="sb-list" style="text-align:left;margin:14px auto;max-width:320px;font-size:15px;line-height:1.8"></ol>
+    <div id="sb-rank" style="font-size:16px;font-weight:700;color:var(--warm);margin:10px 0"></div>
+    <button class="primary" id="sb-go"></button>
+  </div></div>
   <div class="ov" id="ov-done" style="display:none"><div class="card" style="max-width:420px;text-align:center;padding:28px 24px">
     <div style="font-size:32px;color:#29B5E8;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:14px">
       <img src="/assets/snowflake-mark.png" alt="" width="36" height="36" style="image-rendering:auto">
@@ -712,6 +750,7 @@
     <div id="done-poc" style="font-size:13px;color:var(--dim);margin:4px 0"></div>
     <div id="done-feats" style="font-size:13px;color:var(--dim);margin:4px 0"></div>
     <div id="done-time" style="font-size:22px;font-weight:700;color:var(--edge);margin:18px 0"></div>
+    <div id="done-score" style="font-size:16px;font-weight:700;color:var(--warm);margin:-10px 0 10px"></div>
     <img id="done-cardimg" alt="Your card" style="display:block;width:100%;
       border-radius:8px;margin:14px 0 4px;image-rendering:pixelated">
     <div id="done-hand" style="display:none;align-items:center;gap:12px;
@@ -935,6 +974,8 @@ const blocking = () => panelOpen || $('ov-title').classList.contains('on')
   || $('ov-letter').classList.contains('on')
   || $('ov-home').classList.contains('on')
   || $('ov-ask').classList.contains('on')
+  || $('ov-bonus').classList.contains('on')
+  || $('ov-board').classList.contains('on')
   || $('ov-bp').classList.contains('on');
 addEventListener('keydown',e=>{
   // Movement swallows w/a/s/d with preventDefault, so a focused field lost those
@@ -944,7 +985,10 @@ addEventListener('keydown',e=>{
   if(e.key!=='Escape' && (tag==='input' || tag==='select' || tag==='textarea'
       || (t && t.isContentEditable))) return;
   if(blocking()){
-    if(e.key==='Escape'){ if(panelOpen) tryClosePanel(); else closeBp(); }
+    if(e.key==='Escape'){
+      if($('ov-bonus').classList.contains('on')) skipBonus();
+      else if(panelOpen) tryClosePanel(); else closeBp();
+    }
     return;
   }
   const k=e.key.toLowerCase();
@@ -1149,6 +1193,9 @@ function render(){
   drawPenguin(g,P.px*T*S,P.py*T*S);
   drawRoute(g);
   drawLabels(g);
+  drawPostboxStatus(g);
+  drawBonus(g);
+  drawSparks(g);
   // Snow belongs outdoors. While the visitor is inside a location the board is
   // covered by #scene, so this only ever wasted frames - but gating it means
   // snow can never bleed into the library or the workshop, whatever changes
@@ -2847,6 +2894,14 @@ function openPanel(id){
     return;
   }
   if(Date.now()<reopenLock) return;   // stops ENTER submitting then reopening
+  // A background workshop draft is a one-shot: re-entering would start a
+  // second draft racing the first, so once submitted the bench is closed.
+  if(id==='workshop' && (CFG.locations.workshop||{}).background
+     && (ST.workshop_pending || (ST.poc||{}).poc_name)){
+    const w=CFG.locations.workshop;
+    nudge(ST.workshop_pending?w.locked_pending:w.locked_done,3200);
+    return;
+  }
   // The postbox is the send step: it opens the final summary window with the
   // SEND button rather than a separate "post it" card.
   if(id==='postbox') return showBp();
@@ -2967,7 +3022,24 @@ function tryClosePanel(){
 async function showBp(){
   let d; try{ d=await (await fetch('/api/blueprint',{cache:'no-store'})).json(); }
   catch(e){ return showErr('cannot load blueprint'); }
-  const p=d.poc||{}; if(!p.poc_name) return;
+  let p=d.poc||{};
+  if(!p.poc_name && ST.workshop_pending){
+    // They beat the background workshop here. Open the card in a finishing
+    // state, with a moving bar so it never reads as frozen, and fill it in
+    // the moment the draft lands.
+    $('bp-h2').textContent=(CFG.locations.workshop||{}).finishing||'';
+    $('bp-sub').textContent='';
+    const bar=document.createElement('div'); bar.className='bp-prep'; bar.appendChild(document.createElement('i'));
+    $('bp').replaceChildren(bar);
+    $('bp-send').disabled=true; $('bp-hand').classList.remove('on');
+    $('ov-bp').classList.add('on');
+    for(let i=0;i<180 && !p.poc_name && $('ov-bp').classList.contains('on');i++){
+      await new Promise(r=>setTimeout(r,1000));
+      try{ d=await (await fetch('/api/blueprint',{cache:'no-store'})).json(); p=d.poc||{}; }catch(e){}
+    }
+    if(!p.poc_name) return;
+  }
+  if(!p.poc_name) return;
   window.__bp=d;
   const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join('');
   // Names only, no links: everything actionable arrives with the document.
@@ -2975,6 +3047,7 @@ async function showBp(){
   const joinNames=(d.joined||[]);
   renderBpBody(d,featNames,joinNames,li);
   paintSendBtn(d);
+  paintMissedBonus(d);
   $('ov-bp').classList.add('on');
 }
 // Repaint the body from a fresher payload. The agentic search is merged server
@@ -3014,6 +3087,7 @@ function renderBpBody(d,featNames,joinNames,li){
 function paintSendBtn(d){
   const btn=$('bp-send'), sub=$('bp-sub'), keys=$('bp-keys'), h2=$('bp-h2');
   if(d.queued || d.draft_created){
+    $('bp-bonus').style.display='none';         // bonus catch-up closes on send
     h2.textContent='Your blueprint is ready';
     // Delivery and FINISHING are two presses, not one. Retiring the button here
     // stranded the visitor: the posting scene played behind this card and the
@@ -3118,7 +3192,7 @@ function finishVisit(){
   GameAudio.stopAll(); GameAudio.playAchievement();
   $('ov-bp').classList.remove('on'); reopenLock=Date.now()+700;
   postingFlourish();
-  setTimeout(showDoneSummary, POST_MS+260);
+  setTimeout(showBoard, POST_MS+260);
 }
 $('bp-send').addEventListener('click',sendPoc);
 // The letter physically going in the box, played in the clear on the way to the
@@ -3129,6 +3203,363 @@ function postingFlourish(){
   visited.add('postbox');
   setTimeout(()=>{ closeScene(); },POST_MS+220);
 }
+
+// ---- blueprint-preparing indicator ----
+// While the background workshop drafts, the postbox wears a spinning ring and
+// a PREPARING tag, so a visitor can see it is not ready yet; the moment the
+// draft lands it flashes and CoCo says so.
+let wasPreparing=false, readyFlashUntil=0;
+function blueprintPreparing(){
+  return !!(ST.workshop_pending || (ST.poc_pending && !(ST.poc||{}).poc_name));
+}
+function drawPostboxStatus(g){
+  const l=CFG.locations.postbox; if(!l || !haveVisitor() || ST.queued) return;
+  const th=CFG.theme, [tx,ty]=l.tile, X=tx*T*S+T*S/2, Y=ty*T*S+T*S/2;
+  const prep=blueprintPreparing();
+  if(wasPreparing && !prep){
+    readyFlashUntil=Date.now()+4000;
+    nudge((CFG.locations.workshop||{}).postbox_ready_nudge||'',3500);
+    GameAudio.playLocationChime();
+  }
+  wasPreparing=prep;
+  if(prep){
+    const R=T*S*0.95, a=tick/9;
+    g.lineWidth=S*1.6; g.lineCap='round';
+    g.strokeStyle=th.ansi_black; g.beginPath(); g.arc(X,Y,R,0,Math.PI*2); g.stroke();
+    g.strokeStyle=th.accent_warm; g.beginPath(); g.arc(X,Y,R,a,a+Math.PI*1.2); g.stroke();
+    g.lineCap='butt';
+    const dots='.'.repeat(1+Math.floor(tick/18)%3).padEnd(3,' ');
+    const lab=((CFG.locations.workshop||{}).postbox_preparing||'')+dots;
+    g.font=`bold ${8*S/2}px ui-monospace, monospace`; g.textAlign='center';
+    const w=g.measureText(lab).width+12, HY=(ty+1)*T*S+28;
+    g.fillStyle='rgba(44,52,68,.88)'; g.fillRect(X-w/2,HY,w,15);
+    g.fillStyle=th.accent_warm; g.fillText(lab,X,HY+11); g.textAlign='left';
+  } else if(Date.now()<readyFlashUntil){
+    const k=(readyFlashUntil-Date.now())/4000, R=T*S*(0.9+0.6*(1-k));
+    g.globalAlpha=Math.max(0,k); g.strokeStyle=th.accent; g.lineWidth=S*2.2;
+    g.beginPath(); g.arc(X,Y,R,0,Math.PI*2); g.stroke(); g.globalAlpha=1;
+  }
+}
+
+// ---------------- bonus objectives ----------------
+// Optional. An object spawns ONLY while the visitor is free on the map, with a
+// countdown to reach it (paused whenever a stop or overlay is open). Walking
+// onto it opens the question with no answer timer. Missing it is never a
+// penalty beyond the points: it can be answered at the postbox for half.
+const BONUS=()=>CFG.bonus||{};
+const bonusCopy=k=>((BONUS().copy||{})[k])||'';
+let bonusPending=null, bonusObj=null, bonusSeen=new Set(), bonusNotBefore=0,
+    bonusLastT=0, bonusBusy=false, lastScore=0;
+function onMapFree(){
+  return haveVisitor() && !openingActive() && !blocking() && !sceneActive
+    && !finishing && !ST.queued && $('ov-done').style.display==='none';
+}
+function bonusOnState(s){
+  if(!BONUS().enabled) return;
+  const nx=(s.bonus||{}).next;
+  if(nx && !bonusSeen.has(nx.id) && (!bonusPending || bonusPending.id!==nx.id)
+     && (!bonusObj || bonusObj.id!==nx.id)){
+    bonusPending=nx; bonusNotBefore=Date.now()+(BONUS().spawn_delay_ms||1500);
+  }
+  const sc=+s.score||0;
+  $('h-scorek').textContent=bonusCopy('score_label');
+  // countUp() owns the number while it animates; only sync when it is idle.
+  if(sc<lastScore || sc===lastScore || !lastScore) $('h-score').textContent=sc.toLocaleString();
+  else countUp(sc);
+  lastScore=sc;
+}
+function pickBonusTile(){
+  const near=(x,y)=>Object.values(CFG.locations).some(l=>
+    Math.abs(l.tile[0]-x)<=1 && Math.abs(l.tile[1]-y)<=1);
+  const c=[];
+  for(let y=1;y<ROWS;y++) for(let x=1;x<COLS;x++){
+    const d=Math.max(Math.abs(x-P.x),Math.abs(y-P.y));
+    if(d>=4 && d<=8 && walkable(x,y) && !near(x,y)) c.push([x,y,map[y][x]===3?3:1]);
+  }
+  if(!c.length) return null;
+  const pool=c.flatMap(t=>Array(t[2]).fill(t));       // paths weighted 3x
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function stepBonus(){
+  const now=Date.now(), dt=bonusLastT?now-bonusLastT:0; bonusLastT=now;
+  if(!BONUS().enabled) return;
+  if(!bonusObj && bonusPending && now>=bonusNotBefore && onMapFree()){
+    const t=pickBonusTile();
+    if(t){
+      bonusObj={...bonusPending, x:t[0], y:t[1],
+                shape:BONUS_SHAPES[[...bonusPending.id].reduce((a,c)=>a+c.charCodeAt(0),0)
+                                   % BONUS_SHAPES.length],
+                left:(BONUS().spawn_seconds||7)*1000};
+      bonusSeen.add(bonusPending.id); bonusPending=null;
+      GameAudio.playLocationChime();
+    }
+  }
+  if(!bonusObj || bonusBusy) return;
+  if(onMapFree()) bonusObj.left-=dt;       // the clock only runs while free
+  if(P.x===bonusObj.x && P.y===bonusObj.y && onMapFree()) return openBonus();
+  if(bonusObj.left<=0) missBonus(true);
+}
+function drawBonus(g){
+  if(!bonusObj) return;
+  const th=CFG.theme, X=bonusObj.x*T*S+T*S/2, Y0=bonusObj.y*T*S+T*S/2;
+  const frac=Math.max(0,bonusObj.left)/((BONUS().spawn_seconds||7)*1000);
+  const urgent=frac<0.3;
+  const r=T*S*0.36, bob=Math.sin(tick/(urgent?5:9))*S*1.6, Y=Y0-S*2+bob;
+  const col=BONUS_COLOURS[bonusObj.shape]||'accent_warm';
+  // ground shadow: shrinks as the icon bobs up, so it reads as floating
+  g.globalAlpha=0.28; g.fillStyle=th.ansi_black; g.beginPath();
+  g.ellipse(X,Y0+r*0.95,r*(0.75-bob/(S*20)),r*0.22,0,0,Math.PI*2); g.fill();
+  // soft halo in the shape's own colour, breathing
+  const breathe=0.5+0.5*Math.sin(tick/(urgent?4:10));
+  [[2.3,0.07],[1.8,0.12],[1.35,0.18]].forEach(([k,a])=>{
+    g.globalAlpha=a*(0.7+0.3*breathe); g.fillStyle=th[col]; g.beginPath();
+    g.arc(X,Y,r*k,0,Math.PI*2); g.fill(); });
+  g.globalAlpha=1;
+  drawBonusShape(g,bonusObj.shape,X,Y,r,th);
+  // orbiting twinkles
+  for(let i=0;i<3;i++){
+    const a=tick/22+i*Math.PI*2/3, tx=X+Math.cos(a)*r*1.7, ty=Y+Math.sin(a)*r*1.1;
+    const s=S*(1+0.8*Math.max(0,Math.sin(tick/7+i*2)));
+    g.fillStyle=th.snow_bright; g.fillRect(tx-s/2,ty-S/4,s,S/2); g.fillRect(tx-S/4,ty-s/2,S/2,s);
+  }
+  // countdown ring, turning red in the last 30%
+  g.strokeStyle=urgent?th.ansi_red_bright:th.accent; g.lineWidth=S*1.6; g.lineCap='round';
+  g.beginPath(); g.arc(X,Y,r*1.75,-Math.PI/2,-Math.PI/2+Math.PI*2*frac); g.stroke(); g.lineCap='butt';
+  // value tag: what it is worth RIGHT NOW, draining while they run for it
+  g.font=`bold ${9*S/2}px ui-monospace, monospace`; g.textAlign='center';
+  const lab='+'+bonusPointsNow()+'  '+Math.ceil(Math.max(0,bonusObj.left)/1000)+'s';
+  const w=g.measureText(lab).width+14, LY=Y-r*2.6-14;
+  g.fillStyle='rgba(44,52,68,.88)'; g.fillRect(X-w/2,LY,w,17);
+  g.fillStyle=th[col]; g.fillRect(X-w/2,LY+15,w*frac,2);
+  g.fillStyle=urgent?th.ansi_red_bright:th.accent_warm; g.fillText(lab,X,LY+12); g.textAlign='left';
+}
+const BONUS_COLOURS={crystal:'accent_warm',star:'ansi_yellow_bright',fish:'accent',
+  snowflake:'snow_bright',coin:'ansi_yellow',heart:'ansi_red_bright'};
+// Client-side mirror of server map_points(), for display only. The server
+// recomputes the real value from the same clamped left_ms.
+function bonusPointsNow(){
+  const sc=BONUS().scoring||{}, base=+sc.map||100, mx=+sc.map_max_multiplier||1;
+  const frac=Math.min(1,Math.max(0,(bonusObj?bonusObj.left:0)/((BONUS().spawn_seconds||7)*1000)));
+  return Math.round(base*(1+(mx-1)*frac)/10)*10;
+}
+const BONUS_SHAPES=['crystal','star','fish','snowflake','coin','heart'];
+function drawBonusShape(g,shape,X,Y,r,th){
+  // Every shape gets a dark outline and a white glint, so it pops off the snow.
+  const outline=()=>{ g.strokeStyle=th.ansi_black; g.lineWidth=S*1.2; g.stroke(); };
+  const glint=(gx,gy,s)=>{ g.fillStyle=th.snow_bright; g.globalAlpha=0.9;
+    g.fillRect(X+gx*r,Y+gy*r,S*s,S*s); g.globalAlpha=1; };
+  const poly=(pts,col)=>{ g.fillStyle=col; g.beginPath();
+    pts.forEach(([x,y],i)=>i?g.lineTo(X+x*r,Y+y*r):g.moveTo(X+x*r,Y+y*r));
+    g.closePath(); g.fill(); outline(); };
+  if(shape==='star'){
+    const spin=tick/40, p=[];
+    for(let i=0;i<10;i++){ const a=-Math.PI/2+spin+i*Math.PI/5, k=i%2?0.45:1.05;
+      p.push([Math.cos(a)*k,Math.sin(a)*k]); }
+    poly(p,th.ansi_yellow_bright);
+    g.fillStyle=th.ansi_yellow; g.beginPath(); g.arc(X,Y,r*0.28,0,Math.PI*2); g.fill();
+    glint(-0.35,-0.5,2);
+  } else if(shape==='fish'){
+    const wag=Math.sin(tick/5)*0.18;
+    poly([[0.5,0],[1.15,-0.6+wag],[1.0,0],[1.15,0.6+wag]],th.accent);    // tail
+    g.fillStyle=th.accent; g.beginPath(); g.ellipse(X-r*0.15,Y,r*0.9,r*0.55,0,0,Math.PI*2);
+    g.fill(); outline();
+    g.fillStyle=th.ansi_blue_bright; g.beginPath();
+    g.ellipse(X-r*0.15,Y+r*0.18,r*0.6,r*0.2,0,0,Math.PI*2); g.fill();      // belly
+    g.fillStyle=th.snow_bright; g.beginPath(); g.arc(X-r*0.62,Y-r*0.12,r*0.17,0,Math.PI*2); g.fill();
+    g.fillStyle=th.ansi_black; g.fillRect(X-r*0.66,Y-r*0.16,S*1.4,S*1.4);  // eye
+  } else if(shape==='snowflake'){
+    const spin=tick/60;
+    g.lineCap='round';
+    [[th.ansi_black,S*3.2],[th.accent,S*1.8]].forEach(([c,w])=>{
+      g.strokeStyle=c; g.lineWidth=w; g.beginPath();
+      for(let i=0;i<6;i++){ const a=spin+i*Math.PI/3, ex=Math.cos(a)*r*1.05, ey=Math.sin(a)*r*1.05;
+        g.moveTo(X,Y); g.lineTo(X+ex,Y+ey);
+        const bx=X+ex*0.6, by=Y+ey*0.6;
+        for(const s of [-1,1]){ const b=a+s*0.7;
+          g.moveTo(bx,by); g.lineTo(bx+Math.cos(b)*r*0.32,by+Math.sin(b)*r*0.32); } }
+      g.stroke(); });
+    g.lineCap='butt';
+    g.fillStyle=th.snow_bright; g.beginPath(); g.arc(X,Y,r*0.2,0,Math.PI*2); g.fill();
+  } else if(shape==='coin'){
+    const sx=Math.abs(Math.cos(tick/14))*0.85+0.15;                       // spinning
+    g.fillStyle=th.warm_deep; g.beginPath(); g.ellipse(X+S,Y+S,r*sx,r,0,0,Math.PI*2); g.fill();
+    g.fillStyle=th.ansi_yellow; g.beginPath(); g.ellipse(X,Y,r*sx,r,0,0,Math.PI*2); g.fill(); outline();
+    g.fillStyle=th.ansi_yellow_bright; g.beginPath(); g.ellipse(X,Y,r*0.68*sx,r*0.68,0,0,Math.PI*2); g.fill();
+    if(sx>0.5){ g.fillStyle=th.warm_deep; g.font=`bold ${Math.round(r*0.9)}px ui-monospace, monospace`;
+      g.textAlign='center'; g.fillText('\u2744',X,Y+r*0.32); g.textAlign='left'; }
+    glint(-0.45*sx,-0.55,1.6);
+  } else if(shape==='heart'){
+    const beat=1+0.1*Math.max(0,Math.sin(tick/4)), R=r*beat;
+    g.fillStyle=th.ansi_red_bright; g.beginPath();
+    g.moveTo(X,Y+R*0.95);
+    g.bezierCurveTo(X-R*1.25,Y+R*0.1,X-R*0.85,Y-R*0.95,X,Y-R*0.35);
+    g.bezierCurveTo(X+R*0.85,Y-R*0.95,X+R*1.25,Y+R*0.1,X,Y+R*0.95);
+    g.closePath(); g.fill(); outline();
+    glint(-0.55,-0.45,2);
+  } else {                                                    // crystal
+    poly([[0,-1.1],[0.72,-0.25],[0.45,1],[-0.45,1],[-0.72,-0.25]],th.accent_warm);
+    poly([[0,-1.1],[0.25,-0.25],[0,1],[-0.25,-0.25]],th.ansi_yellow_bright);  // facet
+    g.strokeStyle=th.ansi_black; g.lineWidth=S*0.8; g.beginPath();
+    g.moveTo(X-r*0.72,Y-r*0.25); g.lineTo(X+r*0.72,Y-r*0.25); g.stroke();
+    glint(-0.35,-0.65,1.8);
+  }
+}
+function chipButton(label,onClick){
+  const b=document.createElement('button'); b.className='chip';
+  b.textContent=label; b.addEventListener('click',onClick); return b;
+}
+function openBonus(){
+  const o=bonusObj; if(!o) return;
+  $('bq-head').textContent=bonusCopy('card_heading');
+  $('bq-q').textContent=o.question;
+  $('bq-hint').textContent=bonusCopy('card_hint');
+  $('bq-skip').textContent=bonusCopy('skip');
+  const box=$('bq-opts'); box.replaceChildren();
+  (o.options||[]).forEach(opt=>box.appendChild(chipButton(opt,()=>answerBonus(opt))));
+  Object.keys(keys).forEach(k=>keys[k]=false);        // stop the walk
+  $('ov-bonus').classList.add('on');
+}
+async function answerBonus(opt){
+  const o=bonusObj; if(!o || bonusBusy) return; bonusBusy=true;
+  // Close and celebrate at once, with the expected value; the server's
+  // answer then settles the real score. Waiting on the round trip first made
+  // every collect feel sticky.
+  const left=Math.max(0,Math.round(o.left)), guess=bonusPointsNow(), pt=boardPoint(o.x,o.y);
+  bonusObj=null; $('ov-bonus').classList.remove('on');
+  celebrateBonus(guess, pt, 0); burstAt(o.x,o.y);
+  try{
+    const r=await (await fetch('/api/bonus/answer',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:o.id,choice:opt,where:'map',left_ms:left})})).json();
+    if(r.ok && r.score){ lastScore=r.score; countUp(r.score); }
+  }catch(e){}
+  bonusBusy=false;
+}
+async function missBonus(timedOut){
+  const o=bonusObj; if(!o || bonusBusy) return; bonusBusy=true;
+  try{ await fetch('/api/bonus/miss',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({id:o.id})}); }
+  catch(e){}
+  bonusObj=null; bonusBusy=false; $('ov-bonus').classList.remove('on');
+  nudge(bonusCopy('missed_toast'),3200);
+}
+function skipBonus(){ missBonus(false); }
+$('bq-skip').addEventListener('click',skipBonus);
+
+// ---- score gratification ----
+// A collected bonus should FEEL like points: a big number floats up from where
+// it was won, a burst of sparks fires on the board, the score in the top bar
+// counts up, and a progress line says how many are left.
+let sparks=[];
+function boardPoint(tx,ty){
+  const cv=$('cv'), r=cv.getBoundingClientRect();
+  return {x:r.left+((tx+0.5)*T*S/cv.width)*r.width,
+          y:r.top+((ty+0.5)*T*S/cv.height)*r.height};
+}
+function burstAt(tx,ty){
+  const X=tx*T*S+T*S/2, Y=ty*T*S+T*S/2;
+  for(let i=0;i<28;i++){
+    const a=Math.PI*2*i/28+Math.random()*0.3, v=2+Math.random()*4;
+    sparks.push({x:X,y:Y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.5,life:1,
+                 c:i%2?'accent_warm':'accent'});
+  }
+}
+function drawSparks(g){
+  if(!sparks.length) return;
+  sparks.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.18; p.life-=0.025;
+    g.globalAlpha=Math.max(0,p.life); g.fillStyle=CFG.theme[p.c];
+    g.fillRect(p.x-S,p.y-S,S*2,S*2); });
+  g.globalAlpha=1; sparks=sparks.filter(p=>p.life>0);
+}
+function popText(text,pt,cls){
+  const el=document.createElement('div'); el.className='scorepop'+(cls?' '+cls:'');
+  el.textContent=text; el.style.left=pt.x+'px'; el.style.top=pt.y+'px';
+  document.body.appendChild(el); setTimeout(()=>el.remove(),1700);
+}
+function countUp(to){
+  const el=$('h-score'), from=+String(el.textContent).replace(/[^0-9]/g,'')||0;
+  if(!(to>from)) return;
+  const t0=performance.now(), dur=700;
+  (function step(t){ const k=Math.min(1,(t-t0)/dur);
+    el.textContent=Math.round(from+(to-from)*(1-Math.pow(1-k,3))).toLocaleString();
+    if(k<1) requestAnimationFrame(step); })(t0);
+  el.animate([{transform:'scale(1)'},{transform:'scale(1.9)',color:'var(--warm)'},
+              {transform:'scale(1)'}],{duration:800,easing:'ease-out'});
+}
+function celebrateBonus(points,pt,score){
+  popText(bonusCopy('pop_text').replace('{points}',points),pt);
+  const n=(((ST.bonus||{}).answered)||[]).length+1, max=BONUS().max_answered||5;
+  setTimeout(()=>popText(bonusCopy('progress').replace('{n}',Math.min(n,max))
+    .replace('{max}',max),{x:pt.x,y:pt.y+46},'small'),220);
+  if(score){ lastScore=score; countUp(score); }
+  GameAudio.playAchievement();
+}
+
+// Postbox catch-up. Optional; the CREATE button never waits on it.
+function paintMissedBonus(d){
+  const wrap=$('bp-bonus'), b=ST.bonus||{};
+  // Only as many as there are bonus slots left: past the cap the server
+  // rightly refuses them, and a tappable question that does nothing is worse
+  // than not offering it.
+  const left=Math.max(0,(BONUS().max_answered||5)-((b.answered||[]).length));
+  const missed=(b.missed||[]).slice(0,left);
+  if(!BONUS().enabled || d.queued || !missed.length){ wrap.style.display='none'; return; }
+  wrap.replaceChildren();
+  const h=document.createElement('h3'); h.textContent=bonusCopy('missed_heading');
+  const hint=document.createElement('div'); hint.className='hint';
+  hint.textContent=bonusCopy('missed_hint');
+  wrap.append(h,hint);
+  missed.forEach(m=>{
+    const row=document.createElement('div'); row.style.margin='8px 0';
+    const q=document.createElement('div'); q.style.fontSize='14px'; q.textContent=m.question;
+    const opts=document.createElement('div'); opts.className='opts chips';
+    (m.options||[]).forEach(opt=>opts.appendChild(chipButton(opt,async()=>{
+      opts.querySelectorAll('button').forEach(b=>b.disabled=true);
+      try{
+        const r=await (await fetch('/api/bonus/answer',{method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({id:m.id,choice:opt,where:'postbox'})})).json();
+        if(r.ok){
+          const rc=row.getBoundingClientRect();
+          row.remove();
+          celebrateBonus(r.points||((BONUS().scoring||{}).postbox)||0,
+                         {x:rc.left+rc.width/2, y:rc.top+rc.height/2}, r.score);
+          // Answering may have used the last slot: drop any rows now over the cap.
+          if((((ST.bonus||{}).answered)||[]).length+1>=(BONUS().max_answered||5))
+            wrap.querySelectorAll('.opts').forEach(o=>o.parentElement.remove());
+        }
+        else row.remove();              // refused (e.g. cap reached): do not leave it tappable
+      }catch(e){ opts.querySelectorAll('button').forEach(b=>b.disabled=false); }
+      if(!wrap.querySelector('.opts')) wrap.style.display='none';
+    })));
+    row.append(q,opts); wrap.appendChild(row);
+  });
+  wrap.style.display='';
+}
+
+// Scoreboard: today's top penguins on THIS account, read from SESSIONS by the
+// server. If it cannot be read the visit simply carries on to the card.
+async function showBoard(){
+  if(!BONUS().enabled) return showDoneSummary();
+  let d=null;
+  try{ const r=await fetch('/api/scoreboard',{cache:'no-store'}); if(r.ok) d=await r.json(); }
+  catch(e){}
+  if(!d || !d.ok) return showDoneSummary();
+  $('sb-title').textContent=bonusCopy('scoreboard_title');
+  const ol=$('sb-list'); ol.replaceChildren();
+  (d.top||[]).forEach(row=>{
+    const li=document.createElement('li');
+    li.textContent=row.name+' \u2014 '+(+row.score).toLocaleString();
+    if(row.you){ li.style.color='var(--warm)'; li.style.fontWeight='700'; }
+    ol.appendChild(li);
+  });
+  const sc=(+d.score||+ST.score||0).toLocaleString();
+  $('sb-rank').textContent=(d.rank?bonusCopy('scoreboard_rank').replace('{rank}',d.rank)
+    :bonusCopy('scoreboard_unranked')).replace('{score}',sc);
+  $('sb-go').textContent=bonusCopy('scoreboard_button');
+  $('ov-board').classList.add('on');
+}
+$('sb-go').addEventListener('click',()=>{ $('ov-board').classList.remove('on'); showDoneSummary(); });
 
 // ---------------- new visitor ----------------
 $('newv').addEventListener('click',async()=>{
@@ -3207,7 +3638,14 @@ $('c-coco-choose').addEventListener('click',()=>{
     .filter(Boolean).join(', ');
   const text=(problem?'Solve this: '+problem+'. ':'')
     +'Build the most impactful thing'
-    +(tail?' '+tail:' with the data I hold')+'.';
+    +(tail?' '+tail:' with the data I hold')+'.'
+    // What they told CoCo on the map, each as "topic: answer" (falling back to
+    // the question when no topic was recorded), so the brief carries what the
+    // answer was ABOUT, not a bare "Daily".
+    +(()=>{ const a=(((ST.bonus||{}).answered)||[]).filter(x=>x.answer)
+              .map(x=>{ const t=String(x.topic||x.question||'').replace(/[?.\s]+$/,'');
+                        return t?t.charAt(0).toUpperCase()+t.slice(1)+': '+x.answer:x.answer; });
+            return a.length?' '+bonusCopy('brief_prefix')+' '+a.join('; ')+'.':''; })();
   $('c-compose').value=text;
   submitPanel();
 });
@@ -3523,12 +3961,14 @@ function buildShareCard(){
   g.font='700 26px -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
   const el=Math.max(0,Math.round(Date.now()/1000-(ST.started_at||Date.now()/1000)));
   const mm=Math.floor(el/60), ss=el%60;
-  g.fillText('Built in '+mm+':'+String(ss).padStart(2,'0')+' with Cortex Code',
+  g.fillText('Built in '+mm+':'+String(ss).padStart(2,'0')+' with Cortex Code'
+             +(ST.score?'  \u00b7  '+bonusCopy('card_score').replace('{score}',ST.score):''),
              PADX,CARD_H-66);
   g.fillStyle='rgba(255,255,255,.62)';
   g.font='400 20px -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
   const city=((CFG.event||{}).city)||'';
-  g.fillText((v.first_name||'A visitor')+' at Snowflake World Tour '+city,
+  const evName=String((CFG.event||{}).event_name||'').trim()||('Snowflake World Tour '+city);
+  g.fillText((v.first_name||'A visitor')+' at '+evName,
              PADX,CARD_H-34);
 
   // The mark, bottom right. The full wordmark rather than the symbol alone: this
@@ -3578,6 +4018,7 @@ function showDoneSummary(){
   const elapsed=Math.round(Date.now()/1000-(ST.started_at||Date.now()/1000));
   const mm=Math.floor(elapsed/60), ss=elapsed%60;
   $('done-time').textContent='Completed in '+mm+':'+String(ss).padStart(2,'0');
+  $('done-score').textContent=ST.score?bonusCopy('card_score').replace('{score}',ST.score):'';
   // Render the card straight away, so the visitor sees the thing they are
   // being offered rather than a button promising one.
   // The card is drawn here, but it must not STAY here. The booth machine is a
@@ -3747,6 +4188,10 @@ function fillCli(t,s){
 function onState(s){
   const firstLoad = !ST.updated_at;
   ST=s;
+  bonusOnState(s);
+  // A background workshop draft counts as visited: the visitor has been sent
+  // on, so the route cue must point at the postbox, not back at the bench.
+  if(s.workshop_pending) visited.add('workshop');
   (s.turns||[]).forEach(t=>visited.add(t.location));
   $('h-col').textContent=`${visited.size} / ${Object.keys(CFG.locations).length}`;
   if(s.started_at && haveVisitor()){
@@ -3937,13 +4382,18 @@ function repaginate(){
   showPage(target,done);
 }
 
+let pollBusy=false;
 async function poll(){
+  // One request in flight at a time: at 400ms a slow response used to stack
+  // polls up and apply them out of order, which reads as stutter.
+  if(pollBusy) return; pollBusy=true;
   try{ const r=await fetch('/api/state',{cache:'no-store'});
     if(r.ok){ onState(await r.json()); }
   }catch(e){ showErr('state unavailable \u2014 is server.py running?'); }
+  finally{ pollBusy=false; }
 }
 
-function loop(){ tick++; stepMovement();
+function loop(){ tick++; stepMovement(); stepBonus();
   if(blocking()||finishing) GameAudio.stopWalking(); else GameAudio.startWalking();
   if(tick%2===0) stepType(); render();
   if(sceneActive) drawScene(sceneActive); requestAnimationFrame(loop); }
