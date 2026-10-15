@@ -2451,7 +2451,12 @@ function summaryRegion(){
   const picked=[...homeAns.country].map(i=>opts[i]).filter(Boolean);
   const real=picked.filter(x=>x!==olab);
   if(!real.length) return 'the region you choose';
-  if(real.length===1) return real[0]==='United Kingdom'?'the UK':real[0];
+  if(real.length===1){
+    const rn=(CFG.residency||{}).region_names||{};
+    return rn[real[0]]||real[0];
+  }
+  const eu=(CFG.residency||{}).eu_countries;
+  if(eu && !real.every(x=>eu.includes(x))) return 'the region you choose';
   return 'the EU';
 }
 function openingActive(){ return openPhase && openPhase!=='map'; }
@@ -2600,7 +2605,11 @@ function inferResidency(){
   if(!picked.length) return 'unsure';
   const offshore=picked.some(x=>x===olab);
   if(offshore) return 'unsure';
-  return picked.length===1 ? 'country_only' : 'eu';
+  if(picked.length===1) return 'country_only';
+  // Several countries only mean the EU when every one of them is in it.
+  const eu=(CFG.residency||{}).eu_countries;
+  if(eu && !picked.every(x=>eu.includes(x))) return 'unsure';
+  return 'eu';
 }
 
 async function submitLetter(){

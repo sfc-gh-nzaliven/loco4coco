@@ -4,11 +4,11 @@
     "at": "2026-09-16T17:39:34",
     "availability_measured": "2026-09-16",
     "curate_locality": {
-      "at": "2026-09-22 06:57",
+      "at": "2026-10-15",
       "profiles": [
-        "fr"
+        "il"
       ],
-      "how": "cortex search marketplace with a cloudRegion filter"
+      "how": "cortex search marketplace (cloudRegion AWS_EU_CENTRAL_1, 'for Israel'), then hand-curated: only free, importable, non-app listings with global coverage; US/EU/other-country-only results dropped. Almost nothing on the Marketplace is Israel-specific (OpenStreetMap Israel is by-request), so the Israel stall is global datasets that include Israel."
     },
     "weak_fit_review": {
       "at": "2026-09-21",
@@ -3978,6 +3978,758 @@
               "geospatial boundaries and geocoding"
             ],
             "demoted": "off-theme"
+          }
+        ]
+      }
+    },
+    "il": {
+      "healthcare": {
+        "primary": [
+          {
+            "global_name": "GZSUZCN9EG",
+            "title": "Population - Statistics - OECD - Free",
+            "provider": "Data Army Intel",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSUZCN9EG",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTYZEQB2E7",
+            "title": "Ambee Global Air Quality Data - Historical, Present Conditions, and Forecast",
+            "provider": "Ambee",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTYZEQB2E7",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSNZ7F5UH",
+            "title": "COVID-19 Epidemiological Data",
+            "provider": "Starschema",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSNZ7F5UH",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSTZ67BY9OQW",
+            "title": "PubMed Biomedical Research Corpus",
+            "provider": "Snowflake",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSTZ67BY9OQW/snowflake-pubmed-biomedical-research-corpus",
+            "regions": "AWS_EU_WEST_2,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ7UQCDOH",
+            "title": "Basic Sociodemographics-Bundle for Countries Worldwide",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTYZEQB2EV",
+            "title": "Ambee Global Influenza-Like Illness (ILI) Data - 4-Week Forecast",
+            "provider": "Ambee",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTYZEQB2EV",
+            "regions": "ALL",
+            "ready": true
+          }
+        ],
+        "reserve": [
+          {
+            "global_name": "GZSUZCN9EC",
+            "title": "Migration - Statistics - OECD - Free",
+            "provider": "Data Army Intel",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSUZCN9EC",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTYZEQB2E3",
+            "title": "Ambee Global Pollen Data - Historical, Present Conditions, and Forecast",
+            "provider": "Ambee",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTYZEQB2E3",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0Z4C8RF3GA",
+            "title": "AI Training Dataset from worldpopulationreview.com",
+            "provider": "Bright Data",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0Z4C8RF3GA",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ7UQCDOT",
+            "title": "Purchasing Power for Countries Worldwide",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOT",
+            "regions": "ALL",
+            "ready": true
+          }
+        ]
+      },
+      "financial": {
+        "primary": [
+          {
+            "global_name": "GZTSZRC7HRG",
+            "title": "CEIC World Macro Economic Data",
+            "provider": "CEIC Data",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTSZRC7HRG",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZTSZRC7HQB",
+            "title": "CEIC Global Macro Economic Data",
+            "provider": "CEIC Data",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTSZRC7HQB",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZTDZM1AK5",
+            "title": "Company data",
+            "provider": "OpenCorporates",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTDZM1AK5",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTDZ1ELIY",
+            "title": "ESG Performance Score Core & Plus",
+            "provider": "ESG Book",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTDZ1ELIY",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZU6ZOVBL5",
+            "title": "Global Probability of Default Suite",
+            "provider": "Criat",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZU6ZOVBL5",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTDZ7DJU9",
+            "title": "Inflation Forecasting - Headline & Core CPI by Country",
+            "provider": "Turnleaf Analytics",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTDZ7DJU9/turnleaf-analytics-inflation-forecasting-headline-core-cpi-by-country",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          }
+        ],
+        "reserve": [
+          {
+            "global_name": "GZTSZRC7HQV",
+            "title": "CEIC Nowcasts",
+            "provider": "CEIC Data",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTSZRC7HQV",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZTDZPG1WM",
+            "title": "Economist Enterprise (EIU) Country Forecasts",
+            "provider": "Economist Enterprise: EIU",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTDZPG1WM",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZSTZ4M0V43",
+            "title": "Worldwide Corporate Actions",
+            "provider": "Exchange Data International",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSTZ4M0V43",
+            "regions": "AWS_EU_WEST_2,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZSTZ4M0V4F",
+            "title": "GLOBAL MARKET HOLIDAYS CALENDAR",
+            "provider": "Exchange Data International",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSTZ4M0V4F",
+            "regions": "AWS_EU_WEST_2,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ1780DR",
+            "title": "Global 2000 Companies (2025)",
+            "provider": "CDQ AG",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ1780DR",
+            "regions": "ALL",
+            "ready": true
+          }
+        ]
+      },
+      "retail": {
+        "primary": [
+          {
+            "global_name": "GZSYZ7UQCDOT",
+            "title": "Purchasing Power for Countries Worldwide",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOT",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ7UQCDOH",
+            "title": "Basic Sociodemographics-Bundle for Countries Worldwide",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSOZ1LLD8",
+            "title": "Global Weather & Climate Data by Pelmorex Weather Source",
+            "provider": "Pelmorex Weather Source",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSOZ1LLD8",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0Z2BR4ACAV",
+            "title": "World Points of Interest Premium Global",
+            "provider": "Precisely",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0Z2BR4ACAV",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTYZ6RY1FJ",
+            "title": "Dataplor’s Global Dataset",
+            "provider": "Dataplor",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTYZ6RY1FJ",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT1ZA3NLN",
+            "title": "Top 1M Search Keywords, by country",
+            "provider": "Similarweb Ltd",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT1ZA3NLN",
+            "regions": "ALL",
+            "ready": true
+          }
+        ],
+        "reserve": [
+          {
+            "global_name": "GZSVZSRFAI",
+            "title": "Global Insights on Fashion Trends by Style, Category & Color",
+            "provider": "UrStyle.ai",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSVZSRFAI",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0Z2BR4AC5M",
+            "title": "Neighborhood Boundaries Global",
+            "provider": "Precisely",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC5M",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT1ZA3NLB",
+            "title": "Top 1M ranked domains, by country",
+            "provider": "Similarweb Ltd",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT1ZA3NLB",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSUZCN9EG",
+            "title": "Population - Statistics - OECD - Free",
+            "provider": "Data Army Intel",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSUZCN9EG",
+            "regions": "ALL",
+            "ready": true
+          }
+        ]
+      },
+      "public": {
+        "primary": [
+          {
+            "global_name": "GZSYZ7UQCDOX",
+            "title": "MBI Global Area Boundaries",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOX",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0Z2BR4AC92",
+            "title": "World Boundaries Premium",
+            "provider": "Precisely",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC92",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0Z2BR4AC5M",
+            "title": "Neighborhood Boundaries Global",
+            "provider": "Precisely",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC5M",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSNZ7F5UT",
+            "title": "Worldwide Address Data",
+            "provider": "Starschema",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSNZ7F5UT",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSUZCN9EG",
+            "title": "Population - Statistics - OECD - Free",
+            "provider": "Data Army Intel",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSUZCN9EG",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSUZCN9EC",
+            "title": "Migration - Statistics - OECD - Free",
+            "provider": "Data Army Intel",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSUZCN9EC",
+            "regions": "ALL",
+            "ready": true
+          }
+        ],
+        "reserve": [
+          {
+            "global_name": "GZTYZEQB2F0",
+            "title": "Ambee Global Natural Disasters Data - Historical and Present Conditions",
+            "provider": "Ambee",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTYZEQB2F0",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSWZKO6HF",
+            "title": "Global Climate Risk and Resilience Analytics",
+            "provider": "AlphaGeo",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSWZKO6HF",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0Z4CM1E9M9",
+            "title": "Overture Maps - Divisions",
+            "provider": "CARTO",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0Z4CM1E9M9",
+            "regions": "AWS_EU_WEST_2,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ7UQCDOH",
+            "title": "Basic Sociodemographics-Bundle for Countries Worldwide",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH",
+            "regions": "ALL",
+            "ready": true
+          }
+        ]
+      },
+      "manufacturing": {
+        "primary": [
+          {
+            "global_name": "GZTSZRC7HRC",
+            "title": "CEIC Shipping Data",
+            "provider": "CEIC Data",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTSZRC7HRC",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZTSZRC7HQ3",
+            "title": "CEIC Commodities Data",
+            "provider": "CEIC Data",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTSZRC7HQ3/ceic-data-ceic-commodities-data",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZ2FVZ3UJVF",
+            "title": "Data and insights on more than 800 PORTS WORLDWIDE",
+            "provider": "Atexxa Group AG",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZ2FVZ3UJVF",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTDZM1AK5",
+            "title": "Company data",
+            "provider": "OpenCorporates",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTDZM1AK5",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0ZGCQ51RQ",
+            "title": "FactSet Supply Chain Relationships (sample)",
+            "provider": "FactSet",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0ZGCQ51RQ",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZU6Z8PJD5Y",
+            "title": "Dataminr Real-Time Supply Chain Risk & Disruption Intelligence",
+            "provider": "Dataminr",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZU6Z8PJD5Y",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          }
+        ],
+        "reserve": [
+          {
+            "global_name": "GZSTZLT2II6",
+            "title": "Industry Classification Systems (NAICS, ANZSIC, ISIC, UK-SIC, etc.)",
+            "provider": "IBISWorld",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSTZLT2II6/ibisworld-industry-classification-systems-naics-anzsic-isic-uk-sic-etc",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0ZPWB4J7",
+            "title": "D&B Shipping Insights Sample",
+            "provider": "Dun & Bradstreet",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0ZPWB4J7",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTIZ8TXQQ",
+            "title": "Global ADS-B aircraft position data",
+            "provider": "Wingbits",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTIZ8TXQQ",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ1780DR",
+            "title": "Global 2000 Companies (2025)",
+            "provider": "CDQ AG",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ1780DR",
+            "regions": "ALL",
+            "ready": true
+          }
+        ]
+      },
+      "energy": {
+        "primary": [
+          {
+            "global_name": "GZSOZ1LLD8",
+            "title": "Global Weather & Climate Data by Pelmorex Weather Source",
+            "provider": "Pelmorex Weather Source",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSOZ1LLD8",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSVZ8MX1I",
+            "title": "Sample of GasMarketCube - Global Gas Supply, Demand and Trade",
+            "provider": "Rystad Energy",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSVZ8MX1I",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSWZKO6HF",
+            "title": "Global Climate Risk and Resilience Analytics",
+            "provider": "AlphaGeo",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSWZKO6HF",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTYZEQB2F4",
+            "title": "Ambee Global Wildfire Data - Historical, Present Conditions, and Wildfire Risk Forecast",
+            "provider": "Ambee",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTYZEQB2F4",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTSZRC7HQ3",
+            "title": "CEIC Commodities Data",
+            "provider": "CEIC Data",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTSZRC7HQ3/ceic-data-ceic-commodities-data",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZSVZ8MX1U",
+            "title": "Sample of RigCube - Global Rig Supply and Demand",
+            "provider": "Rystad Energy",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSVZ8MX1U",
+            "regions": "ALL",
+            "ready": true
+          }
+        ],
+        "reserve": [
+          {
+            "global_name": "GZTYZEQB2F0",
+            "title": "Ambee Global Natural Disasters Data - Historical and Present Conditions",
+            "provider": "Ambee",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTYZEQB2F0",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTDZ7DJU9",
+            "title": "Inflation Forecasting - Headline & Core CPI by Country",
+            "provider": "Turnleaf Analytics",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTDZ7DJU9/turnleaf-analytics-inflation-forecasting-headline-core-cpi-by-country",
+            "regions": "AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ7UQCDOX",
+            "title": "MBI Global Area Boundaries",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOX",
+            "regions": "ALL",
+            "ready": true
+          }
+        ]
+      },
+      "media": {
+        "primary": [
+          {
+            "global_name": "GZT1ZA3NLB",
+            "title": "Top 1M ranked domains, by country",
+            "provider": "Similarweb Ltd",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT1ZA3NLB",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT1ZA3NLN",
+            "title": "Top 1M Search Keywords, by country",
+            "provider": "Similarweb Ltd",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT1ZA3NLN",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZ2FSZGU5YB",
+            "title": "GWI Core – Consumer Trends, Insights, and Market Data",
+            "provider": "GWI",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZ2FSZGU5YB",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSUZIMU9F",
+            "title": "KASPR Global Geolocated High Frequency Internet Quality & Anomaly Data",
+            "provider": "KASPR Datahaus",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSUZIMU9F",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSVZ6EW2M",
+            "title": "Global Broadband Tariff Time Series 2017",
+            "provider": "Point Topic",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSVZ6EW2M",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ7UQCDOH",
+            "title": "Basic Sociodemographics-Bundle for Countries Worldwide",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH",
+            "regions": "ALL",
+            "ready": true
+          }
+        ],
+        "reserve": [
+          {
+            "global_name": "GZSYZUOPW1",
+            "title": "Global News Analytics Dataset for Stocks",
+            "provider": "YUKKA Lab",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZUOPW1",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT1ZA3NJL",
+            "title": "Global Public & Private Companies Traffic Growth",
+            "provider": "Similarweb Ltd",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT1ZA3NJL",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZ7UQCDOT",
+            "title": "Purchasing Power for Countries Worldwide",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOT",
+            "regions": "ALL",
+            "ready": true
+          }
+        ]
+      },
+      "other": {
+        "primary": [
+          {
+            "global_name": "GZSYZ7UQCDOX",
+            "title": "MBI Global Area Boundaries",
+            "provider": "Michael Bauer International GmbH",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOX",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0Z2BR4AC92",
+            "title": "World Boundaries Premium",
+            "provider": "Precisely",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC92",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZTDZM1AK5",
+            "title": "Company data",
+            "provider": "OpenCorporates",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZTDZM1AK5",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSOZ1LLD8",
+            "title": "Global Weather & Climate Data by Pelmorex Weather Source",
+            "provider": "Pelmorex Weather Source",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSOZ1LLD8",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSYZSRWTW",
+            "title": "15-Day Weather Forecast - Sample",
+            "provider": "Weather Solutions",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSYZSRWTW",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT2ZFPTHIH",
+            "title": "Sample of PODB Plus Global Calendar Data",
+            "provider": "truestar inc.",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT2ZFPTHIH",
+            "regions": "ALL",
+            "ready": true
+          }
+        ],
+        "reserve": [
+          {
+            "global_name": "GZ2FTZ5POFB",
+            "title": "MaxMind GeoLite Country Database",
+            "provider": "MaxMind",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZ2FTZ5POFB",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZSNZ7F5UT",
+            "title": "Worldwide Address Data",
+            "provider": "Starschema",
+            "access": "Free",
+            "url": "https://app.snowflake.com/marketplace/listing/GZSNZ7F5UT",
+            "regions": "ALL",
+            "ready": true
+          },
+          {
+            "global_name": "GZT0Z2BR4AC5M",
+            "title": "Neighborhood Boundaries Global",
+            "provider": "Precisely",
+            "access": "Free trial",
+            "url": "https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC5M",
+            "regions": "ALL",
+            "ready": true
           }
         ]
       }

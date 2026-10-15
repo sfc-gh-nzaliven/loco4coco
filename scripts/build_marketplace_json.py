@@ -172,11 +172,12 @@ def write_mirror():
         "# Curated Marketplace listings (mirror of marketplace.json)",
         "",
         "Profiles: **uk** (London eu-west-2), **fr** (Paris eu-west-3), "
-        "**de** (Frankfurt & Berlin eu-central-1). `regions` is the subset of the "
+        "**de** (Frankfurt & Berlin eu-central-1), **il** (Tel Aviv, judged "
+        "on eu-central-1). `regions` is the subset of the "
         "three SWT venue regions each listing is available in, or ALL.",
         "",
     ]
-    for prof in ("uk", "fr", "de"):
+    for prof in ("uk", "fr", "de", "il"):
         lines.append("# profile: %s" % prof)
         lines.append("")
         for ind in INDUSTRY_ORDER:

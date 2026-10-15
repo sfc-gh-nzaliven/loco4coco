@@ -5,7 +5,7 @@ description: "Human-readable mirror of marketplace.json (the source of truth). C
 
 # Curated Marketplace listings (mirror of marketplace.json)
 
-Profiles: **uk** (London eu-west-2), **fr** (Paris eu-west-3), **de** (Frankfurt & Berlin eu-central-1). `regions` is the subset of the three SWT venue regions each listing is available in, or ALL.
+Profiles: **uk** (London eu-west-2), **fr** (Paris eu-west-3), **de** (Frankfurt & Berlin eu-central-1), **il** (Tel Aviv, judged on eu-central-1). `regions` is the subset of the three SWT venue regions each listing is available in, or ALL.
 
 # profile: uk
 
@@ -528,3 +528,163 @@ Profiles: **uk** (London eu-west-2), **fr** (Paris eu-west-3), **de** (Frankfurt
 | [Movement Daily Activity Index 2020 (Sample)](https://app.snowflake.com/marketplace/listing/GZT0ZIFQPAI) | Mapbox | Free | `GZT0ZIFQPAI` | ALL |
 | [Fiber Internet Coverage Dataset](https://app.snowflake.com/marketplace/listing/GZSYZ12SH0Y) | GroupBWT | Free | `GZSYZ12SH0Y` | ALL |
 | [Basic Sociodemographics-Bundle for Countries Worldwide](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH) | Michael Bauer International GmbH | Free | `GZSYZ7UQCDOH` | ALL |
+
+# profile: il
+
+## il / healthcare / primary
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Population - Statistics - OECD - Free](https://app.snowflake.com/marketplace/listing/GZSUZCN9EG) | Data Army Intel | Free | `GZSUZCN9EG` | ALL |
+| [Ambee Global Air Quality Data - Historical, Present Conditions, and Forecast](https://app.snowflake.com/marketplace/listing/GZTYZEQB2E7) | Ambee | Free trial | `GZTYZEQB2E7` | ALL |
+| [COVID-19 Epidemiological Data](https://app.snowflake.com/marketplace/listing/GZSNZ7F5UH) | Starschema | Free | `GZSNZ7F5UH` | ALL |
+| [PubMed Biomedical Research Corpus](https://app.snowflake.com/marketplace/listing/GZSTZ67BY9OQW/snowflake-pubmed-biomedical-research-corpus) | Snowflake | Free | `GZSTZ67BY9OQW` | AWS_EU_WEST_2,AWS_EU_CENTRAL_1 |
+| [Basic Sociodemographics-Bundle for Countries Worldwide](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOH` | ALL |
+| [Ambee Global Influenza-Like Illness (ILI) Data - 4-Week Forecast](https://app.snowflake.com/marketplace/listing/GZTYZEQB2EV) | Ambee | Free trial | `GZTYZEQB2EV` | ALL |
+
+## il / healthcare / reserve
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Migration - Statistics - OECD - Free](https://app.snowflake.com/marketplace/listing/GZSUZCN9EC) | Data Army Intel | Free | `GZSUZCN9EC` | ALL |
+| [Ambee Global Pollen Data - Historical, Present Conditions, and Forecast](https://app.snowflake.com/marketplace/listing/GZTYZEQB2E3) | Ambee | Free trial | `GZTYZEQB2E3` | ALL |
+| [AI Training Dataset from worldpopulationreview.com](https://app.snowflake.com/marketplace/listing/GZT0Z4C8RF3GA) | Bright Data | Free | `GZT0Z4C8RF3GA` | ALL |
+| [Purchasing Power for Countries Worldwide](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOT) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOT` | ALL |
+
+## il / financial / primary
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [CEIC World Macro Economic Data](https://app.snowflake.com/marketplace/listing/GZTSZRC7HRG) | CEIC Data | Free | `GZTSZRC7HRG` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [CEIC Global Macro Economic Data](https://app.snowflake.com/marketplace/listing/GZTSZRC7HQB) | CEIC Data | Free | `GZTSZRC7HQB` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [Company data](https://app.snowflake.com/marketplace/listing/GZTDZM1AK5) | OpenCorporates | Free trial | `GZTDZM1AK5` | ALL |
+| [ESG Performance Score Core & Plus](https://app.snowflake.com/marketplace/listing/GZTDZ1ELIY) | ESG Book | Free trial | `GZTDZ1ELIY` | ALL |
+| [Global Probability of Default Suite](https://app.snowflake.com/marketplace/listing/GZU6ZOVBL5) | Criat | Free trial | `GZU6ZOVBL5` | ALL |
+| [Inflation Forecasting - Headline & Core CPI by Country](https://app.snowflake.com/marketplace/listing/GZTDZ7DJU9/turnleaf-analytics-inflation-forecasting-headline-core-cpi-by-country) | Turnleaf Analytics | Free trial | `GZTDZ7DJU9` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+
+## il / financial / reserve
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [CEIC Nowcasts](https://app.snowflake.com/marketplace/listing/GZTSZRC7HQV) | CEIC Data | Free | `GZTSZRC7HQV` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [Economist Enterprise (EIU) Country Forecasts](https://app.snowflake.com/marketplace/listing/GZTDZPG1WM) | Economist Enterprise: EIU | Free trial | `GZTDZPG1WM` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [Worldwide Corporate Actions](https://app.snowflake.com/marketplace/listing/GZSTZ4M0V43) | Exchange Data International | Free trial | `GZSTZ4M0V43` | AWS_EU_WEST_2,AWS_EU_CENTRAL_1 |
+| [GLOBAL MARKET HOLIDAYS CALENDAR](https://app.snowflake.com/marketplace/listing/GZSTZ4M0V4F) | Exchange Data International | Free trial | `GZSTZ4M0V4F` | AWS_EU_WEST_2,AWS_EU_CENTRAL_1 |
+| [Global 2000 Companies (2025)](https://app.snowflake.com/marketplace/listing/GZSYZ1780DR) | CDQ AG | Free | `GZSYZ1780DR` | ALL |
+
+## il / retail / primary
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Purchasing Power for Countries Worldwide](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOT) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOT` | ALL |
+| [Basic Sociodemographics-Bundle for Countries Worldwide](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOH` | ALL |
+| [Global Weather & Climate Data by Pelmorex Weather Source](https://app.snowflake.com/marketplace/listing/GZSOZ1LLD8) | Pelmorex Weather Source | Free | `GZSOZ1LLD8` | ALL |
+| [World Points of Interest Premium Global](https://app.snowflake.com/marketplace/listing/GZT0Z2BR4ACAV) | Precisely | Free trial | `GZT0Z2BR4ACAV` | ALL |
+| [Dataplor’s Global Dataset](https://app.snowflake.com/marketplace/listing/GZTYZ6RY1FJ) | Dataplor | Free trial | `GZTYZ6RY1FJ` | ALL |
+| [Top 1M Search Keywords, by country](https://app.snowflake.com/marketplace/listing/GZT1ZA3NLN) | Similarweb Ltd | Free | `GZT1ZA3NLN` | ALL |
+
+## il / retail / reserve
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Global Insights on Fashion Trends by Style, Category & Color](https://app.snowflake.com/marketplace/listing/GZSVZSRFAI) | UrStyle.ai | Free | `GZSVZSRFAI` | ALL |
+| [Neighborhood Boundaries Global](https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC5M) | Precisely | Free trial | `GZT0Z2BR4AC5M` | ALL |
+| [Top 1M ranked domains, by country](https://app.snowflake.com/marketplace/listing/GZT1ZA3NLB) | Similarweb Ltd | Free | `GZT1ZA3NLB` | ALL |
+| [Population - Statistics - OECD - Free](https://app.snowflake.com/marketplace/listing/GZSUZCN9EG) | Data Army Intel | Free | `GZSUZCN9EG` | ALL |
+
+## il / public / primary
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [MBI Global Area Boundaries](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOX) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOX` | ALL |
+| [World Boundaries Premium](https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC92) | Precisely | Free trial | `GZT0Z2BR4AC92` | ALL |
+| [Neighborhood Boundaries Global](https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC5M) | Precisely | Free trial | `GZT0Z2BR4AC5M` | ALL |
+| [Worldwide Address Data](https://app.snowflake.com/marketplace/listing/GZSNZ7F5UT) | Starschema | Free | `GZSNZ7F5UT` | ALL |
+| [Population - Statistics - OECD - Free](https://app.snowflake.com/marketplace/listing/GZSUZCN9EG) | Data Army Intel | Free | `GZSUZCN9EG` | ALL |
+| [Migration - Statistics - OECD - Free](https://app.snowflake.com/marketplace/listing/GZSUZCN9EC) | Data Army Intel | Free | `GZSUZCN9EC` | ALL |
+
+## il / public / reserve
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Ambee Global Natural Disasters Data - Historical and Present Conditions](https://app.snowflake.com/marketplace/listing/GZTYZEQB2F0) | Ambee | Free trial | `GZTYZEQB2F0` | ALL |
+| [Global Climate Risk and Resilience Analytics](https://app.snowflake.com/marketplace/listing/GZSWZKO6HF) | AlphaGeo | Free trial | `GZSWZKO6HF` | ALL |
+| [Overture Maps - Divisions](https://app.snowflake.com/marketplace/listing/GZT0Z4CM1E9M9) | CARTO | Free | `GZT0Z4CM1E9M9` | AWS_EU_WEST_2,AWS_EU_CENTRAL_1 |
+| [Basic Sociodemographics-Bundle for Countries Worldwide](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOH` | ALL |
+
+## il / manufacturing / primary
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [CEIC Shipping Data](https://app.snowflake.com/marketplace/listing/GZTSZRC7HRC) | CEIC Data | Free | `GZTSZRC7HRC` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [CEIC Commodities Data](https://app.snowflake.com/marketplace/listing/GZTSZRC7HQ3/ceic-data-ceic-commodities-data) | CEIC Data | Free | `GZTSZRC7HQ3` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [Data and insights on more than 800 PORTS WORLDWIDE](https://app.snowflake.com/marketplace/listing/GZ2FVZ3UJVF) | Atexxa Group AG | Free trial | `GZ2FVZ3UJVF` | ALL |
+| [Company data](https://app.snowflake.com/marketplace/listing/GZTDZM1AK5) | OpenCorporates | Free trial | `GZTDZM1AK5` | ALL |
+| [FactSet Supply Chain Relationships (sample)](https://app.snowflake.com/marketplace/listing/GZT0ZGCQ51RQ) | FactSet | Free | `GZT0ZGCQ51RQ` | ALL |
+| [Dataminr Real-Time Supply Chain Risk & Disruption Intelligence](https://app.snowflake.com/marketplace/listing/GZU6Z8PJD5Y) | Dataminr | Free trial | `GZU6Z8PJD5Y` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+
+## il / manufacturing / reserve
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Industry Classification Systems (NAICS, ANZSIC, ISIC, UK-SIC, etc.)](https://app.snowflake.com/marketplace/listing/GZSTZLT2II6/ibisworld-industry-classification-systems-naics-anzsic-isic-uk-sic-etc) | IBISWorld | Free | `GZSTZLT2II6` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [D&B Shipping Insights Sample](https://app.snowflake.com/marketplace/listing/GZT0ZPWB4J7) | Dun & Bradstreet | Free | `GZT0ZPWB4J7` | ALL |
+| [Global ADS-B aircraft position data](https://app.snowflake.com/marketplace/listing/GZTIZ8TXQQ) | Wingbits | Free | `GZTIZ8TXQQ` | ALL |
+| [Global 2000 Companies (2025)](https://app.snowflake.com/marketplace/listing/GZSYZ1780DR) | CDQ AG | Free | `GZSYZ1780DR` | ALL |
+
+## il / energy / primary
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Global Weather & Climate Data by Pelmorex Weather Source](https://app.snowflake.com/marketplace/listing/GZSOZ1LLD8) | Pelmorex Weather Source | Free | `GZSOZ1LLD8` | ALL |
+| [Sample of GasMarketCube - Global Gas Supply, Demand and Trade](https://app.snowflake.com/marketplace/listing/GZSVZ8MX1I) | Rystad Energy | Free | `GZSVZ8MX1I` | ALL |
+| [Global Climate Risk and Resilience Analytics](https://app.snowflake.com/marketplace/listing/GZSWZKO6HF) | AlphaGeo | Free trial | `GZSWZKO6HF` | ALL |
+| [Ambee Global Wildfire Data - Historical, Present Conditions, and Wildfire Risk Forecast](https://app.snowflake.com/marketplace/listing/GZTYZEQB2F4) | Ambee | Free trial | `GZTYZEQB2F4` | ALL |
+| [CEIC Commodities Data](https://app.snowflake.com/marketplace/listing/GZTSZRC7HQ3/ceic-data-ceic-commodities-data) | CEIC Data | Free | `GZTSZRC7HQ3` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [Sample of RigCube - Global Rig Supply and Demand](https://app.snowflake.com/marketplace/listing/GZSVZ8MX1U) | Rystad Energy | Free | `GZSVZ8MX1U` | ALL |
+
+## il / energy / reserve
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Ambee Global Natural Disasters Data - Historical and Present Conditions](https://app.snowflake.com/marketplace/listing/GZTYZEQB2F0) | Ambee | Free trial | `GZTYZEQB2F0` | ALL |
+| [Inflation Forecasting - Headline & Core CPI by Country](https://app.snowflake.com/marketplace/listing/GZTDZ7DJU9/turnleaf-analytics-inflation-forecasting-headline-core-cpi-by-country) | Turnleaf Analytics | Free trial | `GZTDZ7DJU9` | AWS_EU_WEST_2,AWS_EU_WEST_3,AWS_EU_CENTRAL_1 |
+| [MBI Global Area Boundaries](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOX) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOX` | ALL |
+
+## il / media / primary
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Top 1M ranked domains, by country](https://app.snowflake.com/marketplace/listing/GZT1ZA3NLB) | Similarweb Ltd | Free | `GZT1ZA3NLB` | ALL |
+| [Top 1M Search Keywords, by country](https://app.snowflake.com/marketplace/listing/GZT1ZA3NLN) | Similarweb Ltd | Free | `GZT1ZA3NLN` | ALL |
+| [GWI Core – Consumer Trends, Insights, and Market Data](https://app.snowflake.com/marketplace/listing/GZ2FSZGU5YB) | GWI | Free trial | `GZ2FSZGU5YB` | ALL |
+| [KASPR Global Geolocated High Frequency Internet Quality & Anomaly Data](https://app.snowflake.com/marketplace/listing/GZSUZIMU9F) | KASPR Datahaus | Free trial | `GZSUZIMU9F` | ALL |
+| [Global Broadband Tariff Time Series 2017](https://app.snowflake.com/marketplace/listing/GZSVZ6EW2M) | Point Topic | Free | `GZSVZ6EW2M` | ALL |
+| [Basic Sociodemographics-Bundle for Countries Worldwide](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOH) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOH` | ALL |
+
+## il / media / reserve
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [Global News Analytics Dataset for Stocks](https://app.snowflake.com/marketplace/listing/GZSYZUOPW1) | YUKKA Lab | Free trial | `GZSYZUOPW1` | ALL |
+| [Global Public & Private Companies Traffic Growth](https://app.snowflake.com/marketplace/listing/GZT1ZA3NJL) | Similarweb Ltd | Free | `GZT1ZA3NJL` | ALL |
+| [Purchasing Power for Countries Worldwide](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOT) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOT` | ALL |
+
+## il / other / primary
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [MBI Global Area Boundaries](https://app.snowflake.com/marketplace/listing/GZSYZ7UQCDOX) | Michael Bauer International GmbH | Free trial | `GZSYZ7UQCDOX` | ALL |
+| [World Boundaries Premium](https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC92) | Precisely | Free trial | `GZT0Z2BR4AC92` | ALL |
+| [Company data](https://app.snowflake.com/marketplace/listing/GZTDZM1AK5) | OpenCorporates | Free trial | `GZTDZM1AK5` | ALL |
+| [Global Weather & Climate Data by Pelmorex Weather Source](https://app.snowflake.com/marketplace/listing/GZSOZ1LLD8) | Pelmorex Weather Source | Free | `GZSOZ1LLD8` | ALL |
+| [15-Day Weather Forecast - Sample](https://app.snowflake.com/marketplace/listing/GZSYZSRWTW) | Weather Solutions | Free | `GZSYZSRWTW` | ALL |
+| [Sample of PODB Plus Global Calendar Data](https://app.snowflake.com/marketplace/listing/GZT2ZFPTHIH) | truestar inc. | Free trial | `GZT2ZFPTHIH` | ALL |
+
+## il / other / reserve
+
+| Listing | Provider | Access | Global name | Regions |
+|---|---|---|---|---|
+| [MaxMind GeoLite Country Database](https://app.snowflake.com/marketplace/listing/GZ2FTZ5POFB) | MaxMind | Free | `GZ2FTZ5POFB` | ALL |
+| [Worldwide Address Data](https://app.snowflake.com/marketplace/listing/GZSNZ7F5UT) | Starschema | Free | `GZSNZ7F5UT` | ALL |
+| [Neighborhood Boundaries Global](https://app.snowflake.com/marketplace/listing/GZT0Z2BR4AC5M) | Precisely | Free trial | `GZT0Z2BR4AC5M` | ALL |

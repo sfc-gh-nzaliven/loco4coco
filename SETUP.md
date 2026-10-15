@@ -12,6 +12,21 @@ Last updated 2026-09-21.
 > change is checked against. Setting the thing up does not require it; changing
 > it does.
 
+> **Hayadata (Tel Aviv) branch — setup decisions are already made. Do not ask
+> the operator about them.**
+>
+> - **Venue:** `tel_aviv` (already set in `game/config.json`). It serves the
+>   Israel dataset profile (`il`), judged on AWS Frankfurt because Snowflake has
+>   no Israel region. Never offer london/paris/berlin or ask for a city.
+> - **Connection:** use the operator's default `snow` connection (the one
+>   marked default in `snow connection list`; if none is marked, the only one).
+>   Ask only if there are several and none is the default.
+> - **Existing install:** if `~/.snowflake/cortex/plugins/loco4coco` already
+>   holds this branch, reuse it — do not re-clone, back up or discard it. Pull
+>   the latest with `git pull` if the working tree is clean.
+> - **Repo:** `https://github.com/sfc-gh-nzaliven/loco4coco`, branch
+>   `hayadata-bonus-objectives`.
+
 ## TL;DR — the whole setup is three things
 
 You do two of them. Cortex Code does the third.
@@ -48,15 +63,17 @@ replace the three bracketed values, and paste:
 ```
 Set up the Loco for CoCo booth game on this laptop.
 
-Clone https://github.com/sfc-gh-pgardner/loco4coco into ~/Desktop/Loco4CoCo and
-symlink it to ~/.snowflake/cortex/plugins/loco4coco. Then read SETUP.md in that
-repo and follow it end to end for the SWT <London|Paris|Berlin> event.
+Clone branch hayadata-bonus-objectives of https://github.com/sfc-gh-nzaliven/loco4coco
+into ~/.snowflake/cortex/plugins/loco4coco (reuse it if it is already there).
+Then read SETUP.md in that repo and follow it end to end for Hayadata, Tel Aviv
+(venue tel_aviv - already set, do not ask me for a city).
 
-My Snowflake connection is called <MYBOOTH>. I have already registered at
-go.dataops.live/emea-swt/register and added the connection.
+Use my default snow connection; do not ask me which one unless there are
+several and none is marked default.
 
 Do all of it: install the Python packages, run deploy/bootstrap.py, run
-deploy/load_context.py, run deploy/verify_context.py --all, set event.venue,
+deploy/load_context.py, run deploy/verify_context.py --all, confirm event.venue
+is tel_aviv,
 start game/server.py, and run game/smoke_test.py against it.
 
 Then tell me four things: the venue, how many datasets loaded for that city,
@@ -187,7 +204,7 @@ what matters is that none of them can happen once the doors open.
 It is a Cortex Code plugin, so it lives in the plugins directory:
 
 ```bash
-git clone https://github.com/sfc-gh-pgardner/loco4coco.git ~/.snowflake/cortex/plugins/loco4coco
+git clone -b hayadata-bonus-objectives https://github.com/sfc-gh-nzaliven/loco4coco.git ~/.snowflake/cortex/plugins/loco4coco
 cd ~/.snowflake/cortex/plugins/loco4coco
 ```
 
@@ -198,7 +215,7 @@ instead. Cortex Code follows the symlink, so the plugin still loads and you
 only have one copy of the code:
 
 ```bash
-git clone https://github.com/sfc-gh-pgardner/loco4coco.git ~/Desktop/Loco4CoCo
+git clone -b hayadata-bonus-objectives https://github.com/sfc-gh-nzaliven/loco4coco.git ~/Desktop/Loco4CoCo
 ln -s ~/Desktop/Loco4CoCo ~/.snowflake/cortex/plugins/loco4coco
 ```
 

@@ -44,6 +44,9 @@ PROFILE = {
     "uk": ("AWS_EU_WEST_2", "the United Kingdom"),
     "fr": ("AWS_EU_WEST_3", "France"),
     "de": ("AWS_EU_CENTRAL_1", "Germany"),
+    # Tel Aviv (Hayadata). Snowflake has no Israel region; Israeli accounts
+    # most often sit in AWS Frankfurt, so that is the region judged against.
+    "il": ("AWS_EU_CENTRAL_1", "Israel"),
 }
 
 INDUSTRIES = ["healthcare", "financial", "retail", "public",
@@ -141,6 +144,12 @@ FOREIGN = {
            "germany", "german ", "united kingdom", " uk", "britain"],
     "de": ["american", " usa", " u.s.", "united states", "canada", "australia",
            "france", "french", "united kingdom", " uk", "britain"],
+    # Almost nothing on the Marketplace is Israel-specific, so global datasets
+    # are the right answer here; only single-country content elsewhere is out.
+    "il": ["american", " usa", " u.s.", "united states", "canada", "australia",
+           "germany", "german ", "france", "french", "united kingdom", " uk",
+           "britain", "england", "london", "paris", "munich", "japan",
+           "india", "brazil", "european ", "pan european", "eu taxonomy"],
 }
 
 # How many industries one listing may LEAD in, per city. Without this the same

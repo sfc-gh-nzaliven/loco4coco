@@ -37,8 +37,10 @@ OUT = os.path.join(REFS, "marketplace-candidates.json")
 # imports anything at the booth - they leave with links and open them later from
 # their own account, wherever they are. So a London recommendation is judged on
 # AWS_EU_WEST_2 availability even though the booth writes to eu-central-1.
-PROFILE_REGION = {"uk": "AWS_EU_WEST_2", "fr": "AWS_EU_WEST_3", "de": "AWS_EU_CENTRAL_1"}
-PROFILE_COUNTRY = {"uk": "the United Kingdom", "fr": "France", "de": "Germany"}
+PROFILE_REGION = {"uk": "AWS_EU_WEST_2", "fr": "AWS_EU_WEST_3", "de": "AWS_EU_CENTRAL_1",
+                  "il": "AWS_EU_CENTRAL_1"}
+PROFILE_COUNTRY = {"uk": "the United Kingdom", "fr": "France", "de": "Germany",
+                   "il": "Israel"}
 
 INDUSTRIES = ["healthcare", "financial", "retail", "public",
               "manufacturing", "energy", "media", "other"]

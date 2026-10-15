@@ -58,6 +58,7 @@ PROFILE_REGION = {
     "uk": ("AWS_EU_WEST_2", "London"),
     "fr": ("AWS_EU_WEST_3", "Paris"),
     "de": ("AWS_EU_CENTRAL_1", "Berlin"),
+    "il": ("AWS_EU_CENTRAL_1", "Tel Aviv"),
 }
 
 

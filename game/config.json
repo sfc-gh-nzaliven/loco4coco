@@ -8,13 +8,13 @@
     "idle_shutdown_minutes": 0
   },
   "event": {
-    "venue": "london",
+    "venue": "tel_aviv",
     "event_name": "Hayadata",
     "_event_name_comment": "What visitors see as the event: the docx 'Prepared for ... - <event_name>.' line, the share card and CoCo's persona. Independent of venue (which only picks datasets and region). Empty falls back to 'Snowflake World Tour <city>'.",
-    "_venue_comment": "The ONE toggle a booth operator changes per event. Expands via the venues map below into city, language, cloud region and marketplace profile. One of: london, paris, berlin - and ONLY those three, because they are the three SWT events. This comment used to list frankfurt as a fourth, which is wrong and was actively dangerous: Frankfurt is the ACCOUNT's region, not an event, and resolve_venue() answers an unknown venue by quietly defaulting market_profile to 'uk', so an operator who trusted this line and set venue to 'frankfurt' would have stood up a booth serving London's datasets with no error anywhere. Do not add a venue here without adding it to the venues map, and do not add one that is not an event. Leave unset to hand-configure city/language/region directly.",
-    "city": "London",
+    "_venue_comment": "The ONE toggle a booth operator changes per event. Expands via the venues map below into city, language, cloud region and marketplace profile. One of: london, paris, berlin (the three SWT events) or tel_aviv (Hayadata) - and ONLY those. This comment used to list frankfurt as a fourth, which is wrong and was actively dangerous: Frankfurt is the ACCOUNT's region, not an event, and resolve_venue() answers an unknown venue by quietly defaulting market_profile to 'uk', so an operator who trusted this line and set venue to 'frankfurt' would have stood up a booth serving London's datasets with no error anywhere. Do not add a venue here without adding it to the venues map, and do not add one that is not an event. Leave unset to hand-configure city/language/region directly.",
+    "city": "Tel Aviv",
     "language": "en",
-    "marketplace_region": "AWS_EU_WEST_2",
+    "marketplace_region": "AWS_EU_CENTRAL_1",
     "_marketplace_region_comment": "The EVENT's region - where the visitors live. Used ONLY to decide which Marketplace datasets are PREFERRED in the recommendations. Resolved from event.venue; you do not set it by hand. It is NOT the account's region and must never be confused with it: the account's region only decides where SESSIONS/TURNS/blueprints are written, is whatever the DataOps pool assigned, and is never needed. Renamed from `region`, which did not say which of the two it meant. Offering a visitor a share they cannot attach wastes the five minutes we just spent with them.",
     "title": "Loco for CoCo",
     "subtitle": "Five minutes to your next data product",
@@ -24,7 +24,7 @@
     "_attribution_comment": "There is deliberately no operator/stand field. It was a hand-typed label that no logic read, and every row written before it was removed had it empty. The question it was for - which laptop produced this row - is already answered by the account, because a second laptop at an event is given its own pool account. SESSIONS.SE_OPERATOR is now stamped with CURRENT_ACCOUNT() automatically."
   },
   "venues": {
-    "_comment": "The three SWT events. event.venue selects one; resolve_venue() in server.py overwrites event.city/language/marketplace_region and sets event.market_profile from it. TWO REGIONS EXIST AND THEY ARE NOT THE SAME THING. (1) `marketplace_region` below is the EVENT LOCATION's cloud region and is used ONLY to judge which Marketplace datasets to RECOMMEND - London prioritises AWS_EU_WEST_2 listings, Paris AWS_EU_WEST_3, Berlin AWS_EU_CENTRAL_1. (2) The ACCOUNT's own region is whatever the DataOps pool assigns (register once per event at https://go.dataops.live/emea-swt/register; the account name is random and its region is not guaranteed) and is used ONLY for where SESSIONS/TURNS/blueprints are written - it must NEVER filter recommendations. Nothing in the setup asks the operator for the account's name or region, which is precisely why a random pool assignment is safe. The visitor never imports anything at the booth: they leave with links and open them later from their own account, so what matters is that a dataset is relevant and available WHERE THEY ARE, not whether the booth could attach it. Because one account serves one event, LOCO4COCO.BOOTH is the per-event separation and there are deliberately no per-event schemas. NOTE: only the 'en' UI copy deck exists; fr/de language codes are wired but the copy is still English (translation deprioritised).",
+    "_comment": "The three SWT events plus Hayadata (tel_aviv). event.venue selects one; resolve_venue() in server.py overwrites event.city/language/marketplace_region and sets event.market_profile from it. TWO REGIONS EXIST AND THEY ARE NOT THE SAME THING. (1) `marketplace_region` below is the EVENT LOCATION's cloud region and is used ONLY to judge which Marketplace datasets to RECOMMEND - London prioritises AWS_EU_WEST_2 listings, Paris AWS_EU_WEST_3, Berlin AWS_EU_CENTRAL_1. (2) The ACCOUNT's own region is whatever the DataOps pool assigns (register once per event at https://go.dataops.live/emea-swt/register; the account name is random and its region is not guaranteed) and is used ONLY for where SESSIONS/TURNS/blueprints are written - it must NEVER filter recommendations. Nothing in the setup asks the operator for the account's name or region, which is precisely why a random pool assignment is safe. The visitor never imports anything at the booth: they leave with links and open them later from their own account, so what matters is that a dataset is relevant and available WHERE THEY ARE, not whether the booth could attach it. Because one account serves one event, LOCO4COCO.BOOTH is the per-event separation and there are deliberately no per-event schemas. NOTE: only the 'en' UI copy deck exists; fr/de language codes are wired but the copy is still English (translation deprioritised).",
     "london": {
       "city": "London",
       "language": "en",
@@ -42,6 +42,13 @@
       "language": "de",
       "marketplace_region": "AWS_EU_CENTRAL_1",
       "market_profile": "de"
+    },
+    "_tel_aviv_comment": "Hayadata, Tel Aviv. Snowflake has no Israel region, so recommendations are judged against AWS Frankfurt (eu-central-1), where Israeli accounts most often sit. The il profile is global datasets that cover Israel: almost nothing on the Marketplace is Israel-specific, and the one listing that is (OpenStreetMap Israel) is by-request. Curated 2026-10-15.",
+    "tel_aviv": {
+      "city": "Tel Aviv",
+      "language": "en",
+      "marketplace_region": "AWS_EU_CENTRAL_1",
+      "market_profile": "il"
     }
   },
   "snowflake": {
@@ -108,7 +115,7 @@
       {
         "id": "company",
         "label": "Where you work",
-        "placeholder": "e.g. NHS Trust, Barclays, Tesco"
+        "placeholder": "e.g. Clalit, Bank Leumi, Shufersal"
       }
     ],
     "industry_question": "And what world do you work in? I'll fill the library with the right shelves.",
@@ -521,7 +528,7 @@
       "heading": "What shall we join to your data?",
       "hint": "Live listings, filtered to what you can attach in this region. No ETL, no storage cost, refreshed by the provider. The same door works outwards: this is how you share your own data without handing over a copy.",
       "other_label": "Something else you'd join",
-      "other_placeholder": "e.g. UK postcode boundaries, company registry data",
+      "other_placeholder": "e.g. Israeli address data, company registry data",
       "discovery": "manual",
       "_discovery_comment": "manual = serve the CURATED marketplace-index.md, which is what the offline agentic-search precompute produced: 6 verified, free, UK-weighted, importability-checked picks per industry. This is deliberate for a branded event. MEASURED with discovery='live': public sector returned three Met Office weather products plus 'India Economic Monitor', because live matching ranked raw keyword hits with no geography and pinned two weather listings; after adding geo weighting and per-industry avoid terms it returned only 4 results, two of them weak ('UN Codes for Trade and Transport', 'Overture Maps'). Curation beats liveness on a stand: the stall must be predictable and defensible. Set to 'live' to use SHOW AVAILABLE LISTINGS (region + is_ready_for_import + geo weighting + industry_avoid), falling back here below min_live_results.",
       "narrative": "This is the Snowflake Marketplace, and every stall is a real company's data. You attach it and query it live, seconds later. You never copy it, you never build a pipeline for it, and you never pay to store it.",
@@ -739,7 +746,8 @@
     "locality": {
       "uk": "the United Kingdom",
       "fr": "France",
-      "de": "Germany"
+      "de": "Germany",
+      "il": "Israel"
     },
     "agentic": {
       "_comment": "THE 7th OPTION. Triggered ONLY when a visitor TYPES into the marketplace 'something else' box. Uses `cortex search marketplace` with a cloudRegion filter taken from event.marketplace_region (the EVENT’s region, resolved from event.venue) - NOT a free-form agent prompt. MEASURED: the prompt route took 110-237s and returned out-of-region results 78 times out of 91; the filtered search takes 6.8-8.3s and is in-region by construction, with provider names included. All three event regions were verified answering from one AWS Frankfurt account, because the Marketplace catalogue is global. Still fired in the BACKGROUND and merged into the takeaway document at the postbox, so a slow call can never hold up the stall. The six curated picks stay deterministic and are never waited on. Watch cost.jsonl (kind=marketplace_agentic).",
@@ -949,6 +957,42 @@
     },
     "_avoid_comment": "Per-industry veto. The public-sector keyword 'postcode' was matching 'Postcode Sector Weather Forecasts' - a weather product - so three of the six public-sector picks were Met Office. These terms drop a listing from an industry even when a keyword hit.",
     "geo_by_profile": {
+      "il": {
+        "_comment": "Israel-specific listings barely exist, so global and multi-country data is PREFERRED here, not demoted as it is for the European profiles. Only single-country content from elsewhere is pushed down.",
+        "prefer": [
+          "israel",
+          "israeli",
+          "tel aviv",
+          "jerusalem",
+          "haifa",
+          "middle east",
+          "global",
+          "worldwide",
+          "international",
+          "countries",
+          "all countries"
+        ],
+        "demote": [
+          "united states",
+          " usa",
+          "u.s.",
+          "zip code",
+          "india",
+          "brazil",
+          "canada",
+          "australia",
+          "japan",
+          "china",
+          "united kingdom",
+          "great britain",
+          "england",
+          "germany",
+          "france",
+          "netherlands",
+          "eurostat",
+          "european union"
+        ]
+      },
       "_comment": "Per market_profile geo weighting for the live/agentic tiers. uk falls back to the 'geo' block above. prefer scores a listing up, demote scores it down. The manual/curated stall does not use geo - its localisation is which listings are curated per profile plus the region filter.",
       "fr": {
         "prefer": [
@@ -1272,6 +1316,18 @@
         "GZSVZ6EW2A",
         "GZSVZ5J5F",
         "GZSYZGJWCJ"
+      ],
+      "il": [
+        "GZSTZ67BY9OQW",
+        "GZSNZ7F5UH",
+        "GZTYZEQB2EV",
+        "GZSVZ8MX1I",
+        "GZSVZ8MX1U",
+        "GZSVZSRFAI",
+        "GZU6ZOVBL5",
+        "GZTDZ1ELIY",
+        "GZT0ZGCQ51RQ",
+        "GZU6Z8PJD5Y"
       ]
     }
   },
@@ -1280,24 +1336,24 @@
     "synthetic_hint": "CoCo can mimic any shelf as synthetic data so a POC can start before the real feed exists. Generate it in Snowflake with GENERATOR and RANDOM, or let Cortex fabricate realistic rows from a description.",
     "external": [
       {
-        "name": "Ordnance Survey Data Hub",
-        "url": "https://osdatahub.os.uk/",
-        "note": "UK geospatial: addresses, UPRN, topography. Not on the Snowflake Marketplace."
+        "name": "data.gov.il",
+        "url": "https://data.gov.il/",
+        "note": "Israeli government open data. Not on the Snowflake Marketplace."
       },
       {
-        "name": "ONS Open Geography Portal",
-        "url": "https://geoportal.statistics.gov.uk/",
-        "note": "Boundaries, postcode lookups, output areas."
+        "name": "Central Bureau of Statistics",
+        "url": "https://www.cbs.gov.il/en",
+        "note": "Israeli population, localities, prices and economic statistics."
       },
       {
-        "name": "data.gov.uk",
-        "url": "https://www.data.gov.uk/",
-        "note": "UK public sector open data."
+        "name": "GovMap",
+        "url": "https://www.govmap.gov.il/",
+        "note": "Israeli national GIS: parcels, addresses, boundaries."
       },
       {
-        "name": "Met Office DataHub",
-        "url": "https://datahub.metoffice.gov.uk/",
-        "note": "Direct API access, and also on the Marketplace."
+        "name": "Israel Meteorological Service",
+        "url": "https://ims.gov.il/en",
+        "note": "Israeli weather observations and forecasts."
       }
     ]
   },
@@ -1328,20 +1384,34 @@
     "heading": "As you'll remember CoCo, we're based in",
     "hint": "Tap every country you have a base in. It helps me keep your data where your rules need it.",
     "options": [
+      "Israel",
+      "United States",
       "United Kingdom",
-      "Ireland",
-      "France",
       "Germany",
-      "Netherlands",
-      "Nordics",
       "Rest of EU",
+      "Asia-Pacific",
       "Somewhere else"
     ],
     "other_label": "Somewhere else"
   },
   "residency": {
     "_comment": "The residency question is no longer asked. It is inferred from the location given on the letter: one country means that country, several mean the EU, anywhere outside means no assumption. These values still reach the blueprint and the SESSIONS row; only the question is gone. fallback_country names a country when none was given.",
-    "fallback_country": "your country"
+    "fallback_country": "your country",
+    "_eu_countries_comment": "Several countries are read as 'must stay in the EU' ONLY when every one picked is listed here. Israel + United States is not an EU constraint.",
+    "eu_countries": [
+      "Ireland",
+      "France",
+      "Germany",
+      "Netherlands",
+      "Nordics",
+      "Rest of EU"
+    ],
+    "_region_names_comment": "How a country reads as the place data stays. Israel has no Snowflake region, so the blueprint must NOT promise data stays in Israel; it says the visitor's chosen region instead.",
+    "region_names": {
+      "United Kingdom": "the UK",
+      "United States": "the US",
+      "Israel": "your chosen region"
+    }
   },
   "sovereignty": {
     "_comment": "Visitor-facing sovereignty copy. react.* are CoCo's one-liners on the home stage, keyed by the answer. pillars.* are reused verbatim in the blueprint's Sovereignty & security section. Kept here so Paris is a copy swap.",

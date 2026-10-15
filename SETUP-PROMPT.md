@@ -9,6 +9,21 @@ want a working booth.
 
 ---
 
+> **Hayadata (Tel Aviv) branch — setup decisions are already made. Do not ask
+> the operator about them.**
+>
+> - **Venue:** `tel_aviv` (already set in `game/config.json`). It serves the
+>   Israel dataset profile (`il`), judged on AWS Frankfurt because Snowflake has
+>   no Israel region. Never offer london/paris/berlin or ask for a city.
+> - **Connection:** use the operator's default `snow` connection (the one
+>   marked default in `snow connection list`; if none is marked, the only one).
+>   Ask only if there are several and none is the default.
+> - **Existing install:** if `~/.snowflake/cortex/plugins/loco4coco` already
+>   holds this branch, reuse it — do not re-clone, back up or discard it. Pull
+>   the latest with `git pull` if the working tree is clean.
+> - **Repo:** `https://github.com/sfc-gh-nzaliven/loco4coco`, branch
+>   `hayadata-bonus-objectives`.
+
 ## The prompt
 
 ```
@@ -22,8 +37,9 @@ you genuinely cannot determine a value:
    python3 --version (need 3.11+), snow --version, cortex --version, and the four
    pip packages snowflake-connector-python, python-docx, PyYAML, segno.
 
-2. Find my Snowflake connections with `snow connection list`. If there is more
-   than one, ask me which to use. Prove it works with `snow connection test`, and
+2. Find my Snowflake connections with `snow connection list`. Use the one
+   marked default (or the only one); ask me only if there are several and none
+   is the default. Prove it works with `snow connection test`, and
    prove Cortex Code can use it with:
    cortex exec "Reply with the single word: ready." --no-mcp -c <conn>
    If that returns "No models available", stop and tell me - nothing else will
@@ -55,7 +71,8 @@ you genuinely cannot determine a value:
    snowflake.connection_name is LOCO4COCO_BOOTH. Tell me the result. If it failed,
    say so but do NOT stop — the booth still works, you will just get keychain prompts.
 
-7. Set event.venue in game/config.json to my event (london, paris or berlin).
+7. Confirm event.venue in game/config.json is tel_aviv (Hayadata). It is
+   already set; do not ask me for a city or change it.
    Do not set event.marketplace_region, event.city or event.language by hand —
    the venue resolves all three. The repo ships snowflake.connection_name as the
    placeholder MYBOOTH; bootstrap should have rewritten it to my connection, so

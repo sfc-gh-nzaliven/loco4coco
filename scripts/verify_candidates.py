@@ -26,7 +26,8 @@ CAND = os.path.join(REFS, "marketplace-candidates.json")
 OUT = os.path.join(REFS, "marketplace-candidates-verified.json")
 
 # The EVENT LOCATION's region - what a recommendation is judged on.
-PROFILE_REGION = {"uk": "AWS_EU_WEST_2", "fr": "AWS_EU_WEST_3", "de": "AWS_EU_CENTRAL_1"}
+PROFILE_REGION = {"uk": "AWS_EU_WEST_2", "fr": "AWS_EU_WEST_3", "de": "AWS_EU_CENTRAL_1",
+                  "il": "AWS_EU_CENTRAL_1"}
 
 
 def load_catalogue(path):

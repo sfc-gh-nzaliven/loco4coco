@@ -1987,6 +1987,11 @@ def sovereignty_lines(cfg, state):
     country = (vis.get("company_country") or "").strip()
     if not residency and not country and not state.get("platforms"):
         return []
+    # A country with no Snowflake region (Israel) must not be promised as the
+    # place the data stays; config maps it to a neutral phrase.
+    names = (cfg.get("residency") or {}).get("region_names") or {}
+    if country in names:
+        country = names[country]
     region = {"country_only": country or "your country",
               "eu": "the EU",
               "us_ok": "your chosen region",

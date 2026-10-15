@@ -22,6 +22,22 @@ a Python standard-library server plus a browser canvas. No npm, no build step, n
 
 ## Setting it up
 
+> **Hayadata (Tel Aviv) branch — setup decisions are already made. Do not ask
+> the operator about them.**
+>
+> - **Venue:** `tel_aviv` (already set in `game/config.json`). It serves the
+>   Israel dataset profile (`il`), judged on AWS Frankfurt because Snowflake has
+>   no Israel region. Never offer london/paris/berlin or ask for a city.
+> - **Connection:** use the operator's default `snow` connection (the one
+>   marked default in `snow connection list`; if none is marked, the only one).
+>   Ask only if there are several and none is the default.
+> - **Existing install:** if `~/.snowflake/cortex/plugins/loco4coco` already
+>   holds this branch, reuse it — do not re-clone, back up or discard it. Pull
+>   the latest with `git pull` if the working tree is clean.
+> - **Repo:** `https://github.com/sfc-gh-nzaliven/loco4coco`, branch
+>   `hayadata-bonus-objectives`.
+
+
 The whole setup is three things, and you only do two of them:
 
 1. **Get an account** — register at <https://go.dataops.live/emea-swt/register>, once per
