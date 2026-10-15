@@ -1392,7 +1392,9 @@
       "Asia-Pacific",
       "Somewhere else"
     ],
-    "other_label": "Somewhere else"
+    "other_label": "Somewhere else",
+    "_default_comment": "When set to one of the options, the letter does not ask where the visitor is based: the question is hidden and this answer is recorded. Hayadata is a Tel Aviv event, so Israel. Empty string asks the question again.",
+    "default": "Israel"
   },
   "residency": {
     "_comment": "The residency question is no longer asked. It is inferred from the location given on the letter: one country means that country, several mean the EU, anywhere outside means no assumption. These values still reach the blueprint and the SESSIONS row; only the question is gone. fallback_country names a country when none was given.",

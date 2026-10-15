@@ -2580,6 +2580,11 @@ function paintLetterAsk(){
   const sc=$('l-stackchips'); sc.innerHTML='';
   (P.options||[]).forEach((o,i)=>
     sc.appendChild(chip(o,homeAns.platforms.has(i),()=>{ togglePlat(i); paintLetterAsk(); })));
+  // A single-country event (Hayadata) fixes the answer: hide the question and
+  // record the default, so residency and the blueprint still see a country.
+  const di=C.default?(C.options||[]).indexOf(C.default):-1;
+  $('l-loc').style.display=di>=0?'none':'';
+  if(di>=0){ homeAns.country=new Set([di]); return; }
   const lc=$('l-locchips'); lc.innerHTML='';
   (C.options||[]).forEach((o,i)=>
     lc.appendChild(chip(o,homeAns.country.has(i),()=>{ pickCountry(i); paintLetterAsk(); })));
