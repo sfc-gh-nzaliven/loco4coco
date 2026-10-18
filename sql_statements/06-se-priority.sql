@@ -4,7 +4,7 @@
 --   SE_SCORE_NOW          can they work on it in the near term (their own answer)
 --   SE_SCORE_SOLVABLE     Snowflake-solvable, and a quick win CoCo can build
 --   SE_SCORE_CONSUMPTION  estimated Snowflake consumption
--- SE_QUALIFIED is TRUE when the average is >= 3.0; those visitors were told to
+-- SE_QUALIFIED is TRUE when the average is >= 2.5 (in practice a total of 8+/15); those visitors were told to
 -- come and talk to an SE. SE_SCORING holds the reasons and the $ estimate.
 -- SCORED_BY_MODEL = FALSE means the model call failed and the visitor was let
 -- through on fallback scores - re-read those rows by hand.

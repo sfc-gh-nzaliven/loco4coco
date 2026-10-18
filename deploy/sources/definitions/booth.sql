@@ -121,7 +121,7 @@ DEFINE TABLE {{db}}.{{schema}}.SESSIONS (
   SE_SCORE_SOLVABLE   NUMBER(1,0)   COMMENT 'SE score 1-5: Snowflake-solvable, and a quick win CoCo can build',
   SE_SCORE_CONSUMPTION NUMBER(1,0)  COMMENT 'SE score 1-5: estimated Snowflake consumption of the use case',
   SE_SCORE_AVG        NUMBER(3,1)   COMMENT 'Average of the three SE scores',
-  SE_QUALIFIED        BOOLEAN       COMMENT 'TRUE when SE_SCORE_AVG >= the pass threshold (3.0)',
+  SE_QUALIFIED        BOOLEAN       COMMENT 'TRUE when SE_SCORE_AVG >= qualification.pass_threshold (2.5)',
   SE_SCORING          VARIANT       COMMENT 'Capacity answer, per-score reasons, consumption estimate, threshold, model'
 )
   COMMENT = 'One row per booth visitor.';
