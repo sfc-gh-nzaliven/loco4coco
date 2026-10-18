@@ -3476,6 +3476,32 @@ function chipButton(label,onClick){
   const b=document.createElement('button'); b.className='chip';
   b.textContent=label; b.addEventListener('click',onClick); return b;
 }
+// The free-text answer: an "Other" chip that opens a short field in place.
+// onSubmit(text) gets the trimmed text; the server has the final say.
+function otherChip(onSubmit){
+  const wrap=document.createElement('span');
+  wrap.style.cssText='display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap';
+  const chip=chipButton(bonusCopy('other_label')||'Other',()=>{
+    const inp=document.createElement('input');
+    inp.type='text'; inp.className='lin'; inp.autocomplete='off';
+    inp.maxLength=+(bonusCopy('other_max')||80);
+    inp.placeholder=bonusCopy('other_placeholder')||'';
+    inp.style.minWidth='200px';
+    const ok=chipButton(bonusCopy('other_submit')||'OK',()=>{
+      const t=inp.value.trim(); if(t.length<2){ inp.focus(); return; }
+      // Same rule the server enforces, checked here so a refused answer is
+      // caught before the card closes.
+      if(/\S+@\S+\.\S+/.test(t) || /(\d[\s\-().]*){7,}/.test(t)){
+        inp.value=''; inp.placeholder='No contact details, please'; inp.focus(); return;
+      }
+      onSubmit(t);
+    });
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ok.click(); } });
+    wrap.replaceChildren(inp,ok); inp.focus();
+  });
+  wrap.appendChild(chip);
+  return wrap;
+}
 function openBonus(){
   const o=bonusObj; if(!o) return;
   $('bq-head').textContent=bonusCopy('card_heading');
@@ -3484,10 +3510,11 @@ function openBonus(){
   $('bq-skip').textContent=bonusCopy('skip');
   const box=$('bq-opts'); box.replaceChildren();
   (o.options||[]).forEach(opt=>box.appendChild(chipButton(opt,()=>answerBonus(opt))));
+  box.appendChild(otherChip(t=>answerBonus(bonusCopy('other_label')||'Other',t)));
   Object.keys(keys).forEach(k=>keys[k]=false);        // stop the walk
   $('ov-bonus').classList.add('on');
 }
-async function answerBonus(opt){
+async function answerBonus(opt,text){
   const o=bonusObj; if(!o || bonusBusy) return; bonusBusy=true;
   // Close and celebrate at once, with the expected value; the server's
   // answer then settles the real score. Waiting on the round trip first made
@@ -3498,8 +3525,11 @@ async function answerBonus(opt){
   try{
     const r=await (await fetch('/api/bonus/answer',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id:o.id,choice:opt,where:'map',left_ms:left})})).json();
+      body:JSON.stringify({id:o.id,choice:opt,text:text||'',where:'map',left_ms:left})})).json();
     if(r.ok && r.score){ lastScore=r.score; countUp(r.score); }
+    // A typed answer the server refused (contact details, too short): the
+    // celebration already played, so say so rather than silently lose it.
+    if(!r.ok && text) nudge(r.error||'',3200);
   }catch(e){}
   bonusBusy=false;
 }
@@ -3581,12 +3611,12 @@ function paintMissedBonus(d){
     const row=document.createElement('div'); row.style.margin='8px 0';
     const q=document.createElement('div'); q.style.fontSize='14px'; q.textContent=m.question;
     const opts=document.createElement('div'); opts.className='opts chips';
-    (m.options||[]).forEach(opt=>opts.appendChild(chipButton(opt,async()=>{
-      opts.querySelectorAll('button').forEach(b=>b.disabled=true);
+    const answer=async(opt,text)=>{
+      opts.querySelectorAll('button,input').forEach(b=>b.disabled=true);
       try{
         const r=await (await fetch('/api/bonus/answer',{method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:m.id,choice:opt,where:'postbox'})})).json();
+          body:JSON.stringify({id:m.id,choice:opt,text:text||'',where:'postbox'})})).json();
         if(r.ok){
           const rc=row.getBoundingClientRect();
           row.remove();
@@ -3596,10 +3626,16 @@ function paintMissedBonus(d){
           if((((ST.bonus||{}).answered)||[]).length+1>=(BONUS().max_answered||5))
             wrap.querySelectorAll('.opts').forEach(o=>o.parentElement.remove());
         }
+        else if(text){                  // typed answer refused: let them retry
+          opts.querySelectorAll('button,input').forEach(b=>b.disabled=false);
+          nudge(r.error||'',3200); return;
+        }
         else row.remove();              // refused (e.g. cap reached): do not leave it tappable
-      }catch(e){ opts.querySelectorAll('button').forEach(b=>b.disabled=false); }
+      }catch(e){ opts.querySelectorAll('button,input').forEach(b=>b.disabled=false); }
       if(!wrap.querySelector('.opts')) wrap.style.display='none';
-    })));
+    };
+    (m.options||[]).forEach(opt=>opts.appendChild(chipButton(opt,()=>answer(opt))));
+    opts.appendChild(otherChip(t=>answer(bonusCopy('other_label')||'Other',t)));
     row.append(q,opts); wrap.appendChild(row);
   });
   wrap.style.display='';

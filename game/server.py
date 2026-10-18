@@ -3520,9 +3520,29 @@ def map_points(cfg, left_ms):
     return int(round(base * (1 + (mx - 1) * frac) / 10.0) * 10)
 
 
-def bonus_answer(cfg, item_id, choice, where, left_ms=0):
+def _bonus_other(cfg, text):
+    """A typed 'Other' answer, cleaned, or None if it cannot be used.
+
+    It lands in prompts, the blueprint and SESSIONS, so it is held to the
+    same bar as a generated question: short, no contact details, nothing
+    banned."""
+    cp = _bonus_cfg(cfg).get("copy") or {}
+    t = re.sub(r"[\x00-\x1f\x7f]", " ", str(text or ""))
+    t = re.sub(r"\s+", " ", t).strip()[:int(cp.get("other_max") or 80)]
+    if len(t) < 2:
+        return None
+    if re.search(r"\S+@\S+\.\S+", t) or re.search(r"(\d[\s\-().]*){7,}", t):
+        return None
+    if _BONUS_BANNED.search(t):
+        return None
+    return t
+
+
+def bonus_answer(cfg, item_id, choice, where, left_ms=0, text=""):
     """Record an answer. Returns (ok, error, points)."""
     sc = _bonus_cfg(cfg).get("scoring") or {}
+    other_label = (_bonus_cfg(cfg).get("copy") or {}).get("other_label") or "Other"
+    typed = _bonus_other(cfg, text) if choice == other_label else None
 
     def apply(b, st):
         if st.get("queued"):
@@ -3543,14 +3563,17 @@ def bonus_answer(cfg, item_id, choice, where, left_ms=0):
         else:
             return False, "unknown bonus", 0
         # Validate BEFORE touching state: a rejected tap must not consume it.
-        if choice not in item.get("options", []):
+        if not typed and choice not in item.get("options", []):
+            if choice == other_label:
+                return False, "that answer cannot be used - try different words", 0
             return False, "not one of the options", 0
         if where == "map":
             b["next"] = None
         else:
             b["missed"] = [m for m in missed if m["id"] != item_id]
         b.setdefault("answered", []).append(
-            {"id": item_id, "question": item["question"], "answer": choice,
+            {"id": item_id, "question": item["question"],
+             "answer": typed or choice, "other": bool(typed),
              "topic": item.get("topic"), "options": item.get("options"),
              "where": where, "points": pts, "at": time.time()})
         return True, "", pts
@@ -3987,7 +4010,8 @@ class Handler(BaseHTTPRequestHandler):
         where = "postbox" if b.get("where") == "postbox" else "map"
         ok, err, pts = bonus_answer(cfg, str(b.get("id") or "")[:16],
                                     str(b.get("choice") or "")[:60], where,
-                                    b.get("left_ms") or 0)
+                                    b.get("left_ms") or 0,
+                                    str(b.get("text") or "")[:200])
         st = read_state()
         if ok and where == "map":
             start_bonus_generation(cfg, st.get("session_id"))
