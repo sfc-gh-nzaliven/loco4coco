@@ -113,6 +113,11 @@ BLANK_STATE = {
     "bonus": {"next": None, "gen": 0, "generating_since": None,
               "offered": 0, "answered": [], "missed": [], "late": False,
               "failed": 0},
+    # SE qualification. `se` holds the scores and reasons and is stripped from
+    # every endpoint the browser reads; the visitor only ever sees `qualified`.
+    "se": {},
+    "qualified": None,
+    "se_ended": False,
 }
 
 # Coarse industry inference. Instant and free, which matters against a
@@ -2356,6 +2361,7 @@ def log_session(cfg, state):
     poc = state.get("poc") or {}
     turns = state.get("turns") or []
     qa = state.get("qa") or {}
+    se = state.get("se") or {}
 
     started = state.get("started_at") or time.time()
     payload = {
@@ -2419,17 +2425,31 @@ def log_session(cfg, state):
             "missed": [m.get("question") for m in
                        ((state.get("bonus") or {}).get("missed")) or []],
         },
+        # SE qualification. NULL when it was off or never ran.
+        "SE_SCORE_NOW": se.get("now"),
+        "SE_SCORE_SOLVABLE": se.get("solvable"),
+        "SE_SCORE_CONSUMPTION": se.get("consumption"),
+        "SE_SCORE_AVG": se.get("avg"),
+        "SE_QUALIFIED": se.get("qualified") if se.get("avg") is not None else None,
+        "SE_SCORING": {k: se.get(k) for k in (
+            "capacity", "solvable_why", "consumption_estimate",
+            "consumption_why", "threshold", "scored_by_model", "model",
+            "error")} if se else None,
     }
-    bool_cols = ["QA_PASSED", "QA_RELEVANT"]
+    bool_cols = ["QA_PASSED", "QA_RELEVANT", "SE_QUALIFIED"]
     arr_cols = ["DATA_HELD", "MARKETPLACE_JOINED", "FEATURES",
                 "CONSIDERATIONS", "PLATFORMS"]
-    var_cols = ["BONUS_QA"]
+    var_cols = ["BONUS_QA", "SE_SCORING"]
     cols = [k for k in payload
             if k not in arr_cols and k not in bool_cols and k not in var_cols]
     num = {"DURATION_SECONDS", "COCO_SECONDS",
            "INPUT_TOKENS", "OUTPUT_TOKENS", "QA_REPAIRS",
-           "BONUS_ANSWERED", "SCORE"}
-    sel = [f"p:{c}::{'NUMBER' if c in num else 'TEXT'}" for c in cols]
+           "BONUS_ANSWERED", "SCORE", "SE_SCORE_NOW", "SE_SCORE_SOLVABLE",
+           "SE_SCORE_CONSUMPTION", "SE_SCORE_AVG"}
+    # Plain NUMBER is NUMBER(38,0), which would truncate a 4.3 average to 4.
+    dec = {"SE_SCORE_AVG": "NUMBER(3,1)"}
+    sel = [f"p:{c}::{dec.get(c) or ('NUMBER' if c in num else 'TEXT')}"
+           for c in cols]
     sel += [f"p:{c}::ARRAY" for c in arr_cols]
     sel += [f"p:{c}::BOOLEAN" for c in bool_cols]
     sel += [f"p:{c}::VARIANT" for c in var_cols]
@@ -2496,6 +2516,9 @@ def delivery_status(state):
     so a staged URL is DELIVERED; anything else has not reached the visitor."""
     if state.get("blueprint_url"):
         return "DELIVERED"
+    # Below the SE threshold no document is made, by design - not a failure.
+    if state.get("se_ended"):
+        return "NOT_QUALIFIED"
     return "FAILED"
 
 
@@ -3100,6 +3123,28 @@ def run_send(cfg, job_id):
         except Exception as e:                                   # noqa: BLE001
             print(f"[loco4coco] QA review error (non-blocking): {e}")
 
+    # SE qualification, after QA so it scores the finished POC. Below the
+    # threshold the game ends here: no document, a kind closing line, and the
+    # row still lands in SESSIONS with the scores for the SE.
+    qc = cfg.get("qualification") or {}
+    name = (state.get("visitor") or {}).get("first_name") or "there"
+    if qc.get("enabled"):
+        try:
+            se = se_qualify(cfg, state)
+        except Exception as e:                                   # noqa: BLE001
+            print(f"[loco4coco] SE qualification error (non-blocking): {e}")
+            se = dict(state.get("se") or {}, qualified=True, error=str(e)[:200])
+        write_state({"se": se, "qualified": bool(se.get("qualified"))})
+        state = read_state()
+        if not se.get("qualified"):
+            reply = str(qc.get("not_qualified_reply") or "Thanks for playing.") \
+                .replace("{first_name}", name)
+            write_state({"queued": False, "email_sent": False, "se_ended": True})
+            _log_send(cfg, findings)
+            finish_turn(cfg, "postbox", "send the blueprint", reply,
+                        {"stage": "done"}, None)
+            return
+
     transport = get_transport(cfg)
     # deliver() reports failure by return value, but an unexpected raise here -
     # a malformed POC reaching the docx builder, say - killed this daemon thread
@@ -3113,7 +3158,17 @@ def run_send(cfg, job_id):
                                    "Snowflake person and we will sort it.")
     st = read_state()
     write_state({"queued": bool(delivered), "email_sent": False})
+    if delivered and qc.get("enabled") and qc.get("qualified_line"):
+        reply = (reply + " " + str(qc["qualified_line"])
+                 .replace("{first_name}", name)).strip()
 
+    _log_send(cfg, findings)
+
+    finish_turn(cfg, "postbox", "send the blueprint", reply, {"stage": "done"},
+                getattr(transport, "last_meta", None))
+
+
+def _log_send(cfg, findings):
     # Log BEFORE finish_turn. finish_turn clears `thinking`, which is the signal
     # everything else waits on, so logging after it means the row lands after
     # the visitor has already been told the flow is finished - and a failure
@@ -3135,9 +3190,6 @@ def run_send(cfg, job_id):
     qok, qerr = log_qa(cfg, read_state().get("session_id") or "", findings)
     if not qok:
         print(f"[loco4coco] QA_FINDINGS insert FAILED: {qerr}")
-
-    finish_turn(cfg, "postbox", "send the blueprint", reply, {"stage": "done"},
-                getattr(transport, "last_meta", None))
 
 
 # ------------------------------------------------------------ bonus objectives
@@ -3174,6 +3226,103 @@ def bonus_block(state):
     """The visitor's bonus answers as prompt lines, or "" if there are none."""
     ans = ((state.get("bonus") or {}).get("answered")) or []
     return "\n".join(f"- {a['question']} -> {a['answer']}" for a in ans)
+
+
+# ------------------------------------------------------------ SE qualification
+#
+# Three 1-5 scores, internal to the SE: NOW is the visitor's own capacity
+# answer at the postbox; SOLVABLE and CONSUMPTION come from one COMPLETE call
+# against a fixed rubric. The average decides whether the visitor is handed a
+# blueprint and pointed at an SE, or thanked and sent on their way.
+
+def capacity_option(cfg, idx):
+    """The capacity option the visitor picked, or None for a bad index."""
+    opts = (((cfg.get("qualification") or {}).get("capacity") or {})
+            .get("options")) or []
+    try:
+        i = int(idx)
+    except (TypeError, ValueError):
+        return None
+    return opts[i] if 0 <= i < len(opts) else None
+
+
+def _score5(v):
+    try:
+        return max(1, min(5, int(round(float(v)))))
+    except (TypeError, ValueError):
+        return None
+
+
+def se_qualify(cfg, state):
+    """Score the use case. Never raises; a failed model call falls back to
+    `fallback_score` so an outage cannot turn a visitor away."""
+    qc = cfg.get("qualification") or {}
+    fb = int(qc.get("fallback_score") or 3)
+    vis = state.get("visitor") or {}
+    poc = state.get("poc") or {}
+    se = dict(state.get("se") or {})
+    now = _score5(se.get("now")) or fb
+    vals = {
+        "industry": industry_name(cfg, vis.get("industry")) or "not given",
+        "company": vis.get("company") or "not given",
+        "problem": vis.get("problem") or "not given",
+        "platforms": ", ".join(state.get("platforms") or []) or "not given",
+        "held": ", ".join(state.get("held") or []) or "none",
+        "joined": ", ".join(state.get("joined") or []) or "none",
+        "bonus": bonus_block(state) or "nothing else",
+        "poc": ": ".join(x for x in (poc.get("poc_name"), poc.get("summary"))
+                         if x) or "none",
+        "features": ", ".join(poc.get("features") or []) or "none",
+    }
+    prompt = str(qc.get("prompt") or "")
+    for k, v in vals.items():
+        prompt = prompt.replace("{" + k + "}", str(v))
+    mdl = (cfg.get("coco") or {}).get("complete_model") or "openai-gpt-5"
+    started = time.time()
+    raw, usage, err, d = "", {}, "", {}
+    for attempt in (1, 2):
+        try:
+            raw, usage = _complete_once(cfg, mdl, prompt)
+            err = ""
+            break
+        except Exception as e:                                   # noqa: BLE001
+            err = str(e)[:200].replace("\n", " ")
+            if attempt == 1 and ("390114" in err or "expired" in err.lower()
+                                 or "closed" in err.lower()):
+                drop_conn()
+                continue
+            break
+    if not err:
+        m = re.search(r"\{.*\}", raw or "", re.S)
+        try:
+            d = json.loads(m.group(0)) if m else {}
+        except json.JSONDecodeError:
+            d = {}
+    sol, con = _score5(d.get("solvable")), _score5(d.get("consumption"))
+    scored = sol is not None and con is not None
+    sol, con = sol or fb, con or fb
+    thr = float(qc.get("pass_threshold") or 3.0)
+    total = now + sol + con
+    se.update({
+        "now": now, "solvable": sol, "consumption": con,
+        "avg": round(total / 3.0, 1),
+        # Compared on the exact sum, so 8/3 = 2.67 never rounds up to a pass.
+        # A model failure is never the visitor's fault: unscored means pass,
+        # and SE_SCORING.scored_by_model=false tells the SE to look again.
+        "qualified": (total >= 3 * thr - 1e-9) or not scored,
+        "threshold": thr,
+        "solvable_why": str(d.get("solvable_why") or "")[:300],
+        "consumption_estimate": str(d.get("consumption_estimate") or "")[:60],
+        "consumption_why": str(d.get("consumption_why") or "")[:300],
+        "scored_by_model": scored, "model": mdl,
+        "error": err or ("" if scored else "unparseable reply"),
+    })
+    secs = time.time() - started
+    log_cost(cfg, "se_qualify", secs, usage, scored, "complete", mdl,
+             error=se["error"] or None, note=(raw or "")[:200])
+    print(f"[loco4coco] SE score now={now} solvable={sol} consumption={con} "
+          f"avg={se['avg']} qualified={se['qualified']} ({secs:.1f}s)")
+    return se
 
 
 def _bonus_known(cfg, state):
@@ -3487,6 +3636,14 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def _json(self, obj, code=200):
+        # The SE scores live in state["se"] and must never reach the browser,
+        # whichever endpoint happens to echo the state back.
+        if isinstance(obj, dict):
+            if "se" in obj:
+                obj = {k: v for k, v in obj.items() if k != "se"}
+            if isinstance(obj.get("state"), dict) and "se" in obj["state"]:
+                obj = dict(obj, state={k: v for k, v in obj["state"].items()
+                                       if k != "se"})
         self._send(code, json.dumps(obj).encode("utf-8"), MIME[".json"])
 
     def _body(self):
@@ -3514,6 +3671,7 @@ class Handler(BaseHTTPRequestHandler):
                 b["next"] = {k: v for k, v in b["next"].items() if k != "why"}
             st["bonus"] = b
             st["score"] = compute_score(cfg, st)
+            st.pop("se", None)              # SE scores are for the SE only
             return self._json(st)
         if path == "/api/scoreboard":
             cfg, st = load_config(), read_state()
@@ -3551,6 +3709,9 @@ class Handler(BaseHTTPRequestHandler):
                 "email": (st.get("visitor") or {}).get("email", ""),
                 "queued": bool(st.get("queued")),
                 "draft_created": bool(st.get("draft_created")),
+                # Pass/fail only; the scores never leave the server.
+                "qualified": st.get("qualified"),
+                "se_ended": bool(st.get("se_ended")),
             })
         if path == "/api/qr":
             # Tier 2 of delivery: the presigned URL as a scannable SVG so the
@@ -3727,6 +3888,11 @@ class Handler(BaseHTTPRequestHandler):
                 "failed": int((st.get("bonus") or {}).get("failed") or 0),
                 "score": compute_score(cfg, st),
             },
+            # The current visitor's SE scores. The admin page is the operator's
+            # view, so this is the one place outside SESSIONS they appear.
+            "se_scores": {k: (st.get("se") or {}).get(k) for k in (
+                "capacity", "now", "solvable", "consumption", "avg",
+                "qualified", "consumption_estimate")},
         })
 
     def _admin_apply(self):
@@ -3809,6 +3975,8 @@ class Handler(BaseHTTPRequestHandler):
         # The bonus record drives the server-side score; the client never
         # writes it directly.
         patch.pop("bonus", None)
+        for k in ("se", "qualified", "se_ended"):     # server-decided only
+            patch.pop(k, None)
         return self._json(write_state(patch))
 
     def _bonus_answer(self):
@@ -3936,8 +4104,10 @@ class Handler(BaseHTTPRequestHandler):
             # A new visitor never inherits the last one's draft flags or POC.
             "workshop_pending": False, "poc_pending": False,
             "workshop_started": None,
+            "se": {}, "qualified": None, "se_ended": False,
         })
         start_bonus_generation(cfg, st.get("session_id"))
+        st.pop("se", None)
         # Tier 0 is NO LONGER fired here. Racing the Library with a 75-110s call
         # never worked, and the curated six must be deterministic at the stall.
         # Agentic search is now the 7th option: triggered only when the visitor
@@ -4086,6 +4256,19 @@ class Handler(BaseHTTPRequestHandler):
         if st.get("queued") and st.get("blueprint_url"):
             return self._json({"accepted": True, "already": True,
                                "blueprint_url": st.get("blueprint_url")})
+        if st.get("se_ended"):
+            return self._json({"accepted": True, "already": True})
+        qc = cfg.get("qualification") or {}
+        if qc.get("enabled"):
+            body = self._body() or {}
+            opt = capacity_option(cfg, body.get("capacity")
+                                  if isinstance(body, dict) else None)
+            if not opt:
+                return self._json({"error": ((qc.get("capacity") or {})
+                                             .get("required")
+                                             or "capacity answer required")}, 400)
+            write_state({"se": {"capacity": opt.get("label"),
+                                "now": _score5(opt.get("score"))}})
         # Stage 2 may still be running if the visitor sprinted here. Give it a
         # moment, then go with what we have: the blueprint is already complete
         # from catalogue defaults, so this is a quality wait, not a hard one.

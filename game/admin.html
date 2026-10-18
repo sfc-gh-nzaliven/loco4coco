@@ -83,6 +83,7 @@
       <dt>Warm agent</dt><dd id="s-warm">&mdash;</dd>
       <dt>Visitor</dt><dd id="s-visitor">&mdash;</dd>
       <dt>Bonus questions</dt><dd id="s-bonus">&mdash;</dd>
+      <dt>SE scoring</dt><dd id="s-se">&mdash;</dd>
     </dl>
     <p class="note">The marketplace region is where your <em>visitors</em> are, and
       decides which datasets get recommended. It is not this account's region, which
@@ -223,6 +224,18 @@ function paint(s) {
     bn.textContent = `offered ${b.offered} · answered ${b.answered} · missed ${b.missed}`
       + ` · generation failures ${b.failed} · score ${b.score}`;
     bn.className = b.failed > b.offered ? 'idle' : 'ok';
+  }
+  // SE qualification for the current visitor: operator-only, never shown on the
+  // game screen. Filled in once they press send at the postbox.
+  const q = s.se_scores || {}, qn = $('s-se');
+  if (q.avg == null) {
+    qn.textContent = q.capacity ? `capacity "${q.capacity}" · scoring…` : 'not yet';
+    qn.className = 'idle';
+  } else {
+    qn.textContent = `now ${q.now} · solvable ${q.solvable} · consumption ${q.consumption}`
+      + (q.consumption_estimate ? ` (${q.consumption_estimate})` : '')
+      + ` · avg ${q.avg} · ${q.qualified ? 'QUALIFIED' : 'not qualified'}`;
+    qn.className = q.qualified ? 'ok' : 'idle';
   }
 }
 

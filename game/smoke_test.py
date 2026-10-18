@@ -172,15 +172,38 @@ if bonus_on and b2:
         if not r2.get("ok"):
             fails.append(f"postbox bonus answer rejected: {r2.get('error')}")
 
-post("/api/send")
+qual_on = bool((json.load(open(os.path.join(GAME, "config.json"), encoding="utf-8"))
+                .get("qualification") or {}).get("enabled"))
+if qual_on:
+    # The capacity answer is required: a send without one must be refused and
+    # must not start delivery.
+    r0 = post_ok("/api/send", {})
+    if not r0.get("error") or state().get("thinking"):
+        fails.append("send without a capacity answer was not refused")
+    if "se" in get("/api/state"):
+        fails.append("/api/state leaks the SE scores to the browser")
+post("/api/send", {"capacity": 0} if qual_on else {})
 timings["postbox"] = wait("postbox")
 s = state()
 print(f"postbox  {timings['postbox']}s : {s['reply'][:110]}")
+if qual_on:
+    se = s.get("se") or {}
+    print(f"se scoring     : now={se.get('now')} solvable={se.get('solvable')} "
+          f"consumption={se.get('consumption')} avg={se.get('avg')} "
+          f"qualified={se.get('qualified')} by_model={se.get('scored_by_model')}")
+    if se.get("now") != 5 or se.get("avg") is None:
+        fails.append(f"SE scoring did not run as expected: {se}")
+    if "se" in get("/api/blueprint") or "se" in get("/api/state"):
+        fails.append("an endpoint leaks the SE scores to the browser")
+    if not se.get("qualified"):
+        # A legitimate outcome for a weak use case, but the smoke visitor is a
+        # strong one, so it is worth a look rather than a silent pass.
+        print("  note: smoke visitor did not qualify - check the rubric")
 
 # --- invariants -------------------------------------------------------------
 # Email and the outbox were removed: the QR to the presigned .docx is the only
 # delivery. `queued` now reflects whether that document was staged for handover.
-if not s.get("queued"):
+if not s.get("queued") and not s.get("se_ended"):
     fails.append("document was not staged for handover (delivery failed)")
 
 leaks = [l for l in (s.get("reasoning") or []) if LEAK.search(l)]
@@ -281,6 +304,26 @@ if bonus_on:
     print(f"scoreboard     : rank {board.get('rank')} of {board.get('total')}")
     if not board.get("ok") or not board.get("rank"):
         fails.append("scoreboard did not rank this session")
+
+if qual_on:
+    q = (f"SELECT SE_SCORE_NOW, SE_SCORE_SOLVABLE, SE_SCORE_CONSUMPTION, "
+         f"SE_SCORE_AVG, SE_QUALIFIED, SE_SCORING FROM {db}.{sch}.SESSIONS "
+         f"WHERE SESSION_ID = '{session_id}'")
+    r = subprocess.run([_snow_binary(), "sql", "-q", q, "--format", "json", "-c", conn],
+                       capture_output=True, text=True, timeout=120)
+    row = {}
+    try:
+        out = json.loads(r.stdout or "[]")
+        row = (out[0] if out else {}) if isinstance(out, list) else out
+    except json.JSONDecodeError:
+        pass
+    print(f"se row         : now={row.get('SE_SCORE_NOW')} "
+          f"solvable={row.get('SE_SCORE_SOLVABLE')} "
+          f"consumption={row.get('SE_SCORE_CONSUMPTION')} "
+          f"avg={row.get('SE_SCORE_AVG')} qualified={row.get('SE_QUALIFIED')}")
+    if row.get("SE_SCORE_NOW") != 5 or row.get("SE_SCORE_AVG") is None \
+            or row.get("SE_QUALIFIED") is None:
+        fails.append(f"SESSIONS SE columns not written: {row}")
 
 post("/api/reset")
 blob = json.dumps(state()).lower()

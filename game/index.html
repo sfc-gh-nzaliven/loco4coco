@@ -731,6 +731,16 @@
         <a id="bp-link" class="handlink" target="_blank" rel="noopener"></a>
       </div>
     </div>
+    <!-- SE qualification: the visitor's capacity, asked once, click-only, and
+         required before the first press. The scores never come back here; the
+         card only learns qualified / not qualified. -->
+    <div id="bp-cap" style="display:none;margin-top:12px">
+      <h3 id="bp-caph"></h3>
+      <div class="hint" id="bp-caphint" style="margin:2px 0 6px"></div>
+      <div class="opts chips" id="bp-capchips"></div>
+    </div>
+    <div id="bp-qual" style="display:none;margin-top:12px;padding:10px 12px;border-radius:8px;
+      border:1px solid var(--warm);color:var(--warm);font-weight:700;font-size:13px;line-height:1.4"></div>
     <div class="go"><button class="primary" id="bp-send">CREATE MY BLUEPRINT</button>
       <span class="keys" id="bp-keys">Builds your document and your QR code</span></div>
   </div></div>
@@ -751,6 +761,7 @@
     <div id="done-feats" style="font-size:13px;color:var(--dim);margin:4px 0"></div>
     <div id="done-time" style="font-size:22px;font-weight:700;color:var(--edge);margin:18px 0"></div>
     <div id="done-score" style="font-size:16px;font-weight:700;color:var(--warm);margin:-10px 0 10px"></div>
+    <div id="done-qual" style="display:none;font-size:13px;font-weight:700;color:var(--warm);margin:0 0 10px"></div>
     <img id="done-cardimg" alt="Your card" style="display:block;width:100%;
       border-radius:8px;margin:14px 0 4px;image-rendering:pixelated">
     <div id="done-hand" style="display:none;align-items:center;gap:12px;
@@ -3060,9 +3071,35 @@ async function showBp(){
   const featNames=(d.features||[]).map(f=>f.name||f).filter(Boolean);
   const joinNames=(d.joined||[]);
   renderBpBody(d,featNames,joinNames,li);
+  paintCapacity(d);
   paintSendBtn(d);
   paintMissedBonus(d);
   $('ov-bp').classList.add('on');
+}
+// ---------------- SE qualification: the capacity question ----------------
+// Asked on the card, before the first press. One pick per visitor; the pick is
+// remembered if they close the card and come back.
+let capPick=null, capSession='';
+const QUAL=()=>CFG.qualification||{};
+function qualOn(){ return !!QUAL().enabled; }
+function qualText(k){
+  return String(QUAL()[k]||'').replace(/\{first_name\}/g,(ST.visitor||{}).first_name||'there');
+}
+function paintCapacity(d){
+  const wrap=$('bp-cap');
+  if(capSession!==(ST.session_id||'')){ capSession=ST.session_id||''; capPick=null; }
+  if(!qualOn() || d.queued || d.se_ended || d.document_url){ wrap.style.display='none'; return; }
+  const c=QUAL().capacity||{};
+  $('bp-caph').textContent=c.heading||'';
+  $('bp-caphint').textContent=c.hint||'';
+  const box=$('bp-capchips'); box.innerHTML='';
+  (c.options||[]).forEach((o,i)=>{
+    const b=document.createElement('div');
+    b.className='chip'+(capPick===i?' on':''); b.textContent=o.label||'';
+    b.addEventListener('click',()=>{ capPick=i; paintCapacity(d); paintSendBtn(d); });
+    box.appendChild(b);
+  });
+  wrap.style.display='';
 }
 // Repaint the body from a fresher payload. The agentic search is merged server
 // side during delivery, which is AFTER this card first rendered, so without this
@@ -3100,7 +3137,21 @@ function renderBpBody(d,featNames,joinNames,li){
 }
 function paintSendBtn(d){
   const btn=$('bp-send'), sub=$('bp-sub'), keys=$('bp-keys'), h2=$('bp-h2');
+  const qual=$('bp-qual');
+  qual.style.display='none';
+  if(d.se_ended){
+    // Below the SE threshold: the game ends here, kindly, with no document.
+    $('bp-bonus').style.display='none'; $('bp-cap').style.display='none';
+    $('bp-hand').classList.remove('on');
+    h2.textContent=qualText('not_qualified_heading');
+    sub.textContent='';
+    $('bp').textContent=qualText('not_qualified_body');
+    btn.disabled=false; btn.textContent=qualText('not_qualified_button')||'FINISH';
+    keys.textContent='';
+    return;
+  }
   if(d.queued || d.draft_created){
+    if(d.qualified && qualOn()){ qual.textContent=qualText('qualified_line'); qual.style.display=''; }
     $('bp-bonus').style.display='none';         // bonus catch-up closes on send
     h2.textContent='Your blueprint is ready';
     // Delivery and FINISHING are two presses, not one. Retiring the button here
@@ -3121,8 +3172,10 @@ function paintSendBtn(d){
   } else {
     h2.textContent='Ready to post';
     sub.textContent='I\u2019ll build your document and hand it straight to you.';
-    btn.disabled=false; btn.textContent=(CFG.locations.postbox||{}).button||'CREATE MY BLUEPRINT';
-    keys.textContent='Builds your document and your QR code';
+    const needCap=qualOn() && capPick===null;
+    btn.disabled=needCap; btn.textContent=(CFG.locations.postbox||{}).button||'CREATE MY BLUEPRINT';
+    keys.textContent=needCap?(((QUAL().capacity)||{}).required||'Pick one first')
+                            :'Builds your document and your QR code';
   }
   paintHandover(d);
 }
@@ -3152,11 +3205,11 @@ async function sendPoc(){
   const btn=$('bp-send'); if(btn.disabled) return;
   // Second press, once the document is already staged: this is the closing
   // beat, not another build.
-  if((window.__bp||{}).document_url) return finishVisit();
+  if((window.__bp||{}).document_url || (window.__bp||{}).se_ended) return finishVisit();
   btn.disabled=true; btn.textContent='BUILDING IT\u2026';
   $('bp-sub').textContent='Writing your document and staging it\u2026';
   try{
-    const r=await post('/api/send',{});
+    const r=await post('/api/send',qualOn()?{capacity:capPick}:{});
     if(!r.ok){ btn.disabled=false; btn.textContent=(CFG.locations.postbox||{}).button||'CREATE MY BLUEPRINT';
       $('bp-sub').textContent='That did not go through \u2014 try once more.'; return; }
   }catch(e){ btn.disabled=false; btn.textContent=(CFG.locations.postbox||{}).button||'CREATE MY BLUEPRINT';
@@ -3177,6 +3230,7 @@ async function sendPoc(){
     let d; try{ d=await (await fetch('/api/blueprint',{cache:'no-store'})).json(); }
     catch(e){ continue; }
     window.__bp=d;
+    if(d.se_ended){ paintSendBtn(d); return; }
     repaintBp(d);
     if(d.document_url || d.queued || d.draft_created){ paintSendBtn(d); }
     if(d.document_url) return;
@@ -3195,7 +3249,7 @@ function closeBp(){
   // Escape and outside-click keep working as an operator escape hatch, and land
   // in the same place the button does.
   const d=window.__bp||{};
-  if(d.document_url) finishVisit();
+  if(d.document_url || d.se_ended) finishVisit();
 }
 // The closing beat. The card comes DOWN first so the posting scene is actually
 // visible - playing it behind the blueprint was why nobody ever saw it - and
@@ -4033,6 +4087,16 @@ function showDoneSummary(){
   const mm=Math.floor(elapsed/60), ss=elapsed%60;
   $('done-time').textContent='Completed in '+mm+':'+String(ss).padStart(2,'0');
   $('done-score').textContent=ST.score?bonusCopy('card_score').replace('{score}',ST.score):'';
+  // Pass/fail only. A qualified visitor is told to go and find an SE; one who
+  // did not qualify gets the closing line instead of a blueprint.
+  const dq=$('done-qual');
+  dq.style.display='none';
+  if(qualOn() && ST.qualified){ dq.textContent=qualText('qualified_badge'); dq.style.display=''; }
+  else if(qualOn() && ST.se_ended){ dq.textContent=qualText('not_qualified_heading'); dq.style.display=''; }
+  // No blueprint was handed over, so do not list one.
+  const ended=qualOn() && ST.se_ended;
+  $('done-poc').style.display=ended?'none':'';
+  $('done-feats').style.display=ended?'none':'';
   // Render the card straight away, so the visitor sees the thing they are
   // being offered rather than a button promising one.
   // The card is drawn here, but it must not STAY here. The booth machine is a

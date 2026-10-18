@@ -17,6 +17,7 @@ CLI otherwise treats as template syntax.
 | `03-event-health.sql` | Checking, during or after the event, that the booth behaved |
 | `04-recover-a-session.sql` | A visitor left with nothing and you need their blueprint back |
 | `05-export-before-teardown.sql` | The event account is about to be destroyed |
+| `06-se-priority.sql` | Deciding which visitors' use cases an SE should follow up first |
 
 **Run these before the account is torn down.** Event accounts are assigned per event
 from a pool and destroyed afterwards. Nothing in them survives, so anything you want

@@ -114,7 +114,15 @@ DEFINE TABLE {{db}}.{{schema}}.SESSIONS (
   -- Appended for bonus objectives (CREATE OR ALTER only allows appends).
   BONUS_QA            VARIANT       COMMENT 'Bonus questions answered (question, answer, where, points) and missed',
   BONUS_ANSWERED      NUMBER        COMMENT 'How many bonus questions were answered',
-  SCORE               NUMBER        COMMENT 'Server-side game score; the scoreboard reads this'
+  SCORE               NUMBER        COMMENT 'Server-side game score; the scoreboard reads this',
+  -- SE qualification, appended (CREATE OR ALTER only allows appends). Never
+  -- shown to the visitor; they only learn whether they qualified.
+  SE_SCORE_NOW        NUMBER(1,0)   COMMENT 'SE score 1-5: can the visitor work on it in the near term (their own capacity answer)',
+  SE_SCORE_SOLVABLE   NUMBER(1,0)   COMMENT 'SE score 1-5: Snowflake-solvable, and a quick win CoCo can build',
+  SE_SCORE_CONSUMPTION NUMBER(1,0)  COMMENT 'SE score 1-5: estimated Snowflake consumption of the use case',
+  SE_SCORE_AVG        NUMBER(3,1)   COMMENT 'Average of the three SE scores',
+  SE_QUALIFIED        BOOLEAN       COMMENT 'TRUE when SE_SCORE_AVG >= the pass threshold (3.0)',
+  SE_SCORING          VARIANT       COMMENT 'Capacity answer, per-score reasons, consumption estimate, threshold, model'
 )
   COMMENT = 'One row per booth visitor.';
 
