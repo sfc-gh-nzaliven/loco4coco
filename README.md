@@ -131,5 +131,5 @@ Total CoCo wait is about 58s of the 300s budget, down from 144.5s before tuning.
 
 ## Authors
 
-- [sfc-gh-pgardner](https://github.com/sfc-gh-pgardner) - original author
+- Paddy and Sabrina - original authors
 - Nikita Zaliven (nikita.zaliven@snowflake.com) - Hayadata (Tel Aviv) localization, bonus questions, Solution Engineer scoring

@@ -19,7 +19,7 @@
     "title": "Loco for CoCo",
     "subtitle": "Five minutes to your next data product",
     "time_limit_seconds": 300,
-    "byline": "by Paddy and Sabrina",
+    "byline": "by Paddy, Sabrina and Nikita",
     "_byline_comment": "Shown under the title on the start screen. Left EMPTY by default so a fresh cloner does not ship someone else's name at their own event. Set it to your own, or leave blank to show nothing.",
     "_attribution_comment": "There is deliberately no operator/stand field. It was a hand-typed label that no logic read, and every row written before it was removed had it empty. The question it was for - which laptop produced this row - is already answered by the account, because a second laptop at an event is given its own pool account. SESSIONS.SE_OPERATOR is now stamped with CURRENT_ACCOUNT() automatically."
   },
