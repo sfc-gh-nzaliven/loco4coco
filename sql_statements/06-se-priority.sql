@@ -4,7 +4,8 @@
 --   SE_SCORE_NOW          can they work on it in the near term (their own answer)
 --   SE_SCORE_SOLVABLE     Snowflake-solvable, and a quick win CoCo can build
 --   SE_SCORE_CONSUMPTION  estimated Snowflake consumption
--- SE_QUALIFIED is TRUE when the average is >= 2.5 (in practice a total of 8+/15); those visitors were told to
+-- Tiers by average: >= 2.5 SE conversation (total 8+/15), 2.0-2.5 blueprint only
+-- (6-7), below 2.0 rejected (3-5). SE_QUALIFIED is TRUE for the top tier; those visitors were told to
 -- come and talk to an SE. SE_BRIEF is a 20-second read before walking over;
 -- SE_SCORING holds the per-score reasons and the $ estimate.
 -- SCORED_BY_MODEL = FALSE means the model call failed and the visitor was let

@@ -747,8 +747,8 @@
     "_comment": "SE scoring. Three 1-5 scores decide whether the use case is worth an SE's time: NOW (the visitor's own capacity answer at the postbox, scored from the option below), SOLVABLE and CONSUMPTION (one COMPLETE call against the rubric in the prompt). Average >= pass_threshold qualifies: the visitor gets the blueprint and is told they can talk to an SE. Below it, the game ends with a friendly message and no blueprint. The scores themselves go ONLY to SESSIONS.SE_* and are stripped from every endpoint the browser reads. If the model call fails, SOLVABLE and CONSUMPTION default to fallback_score so a Snowflake outage never turns a visitor away.",
     "enabled": true,
     "pass_threshold": 2.5,
-    "_blueprint_threshold_comment": "Three outcomes. avg >= pass_threshold: blueprint plus the winning SE popup. blueprint_threshold <= avg < pass_threshold: blueprint, no SE invitation. Below blueprint_threshold: the reject screen, no document. Scores are whole numbers, so in totals out of 15 this is 8+ / 5-7 / 3-4.",
-    "blueprint_threshold": 1.5,
+    "_blueprint_threshold_comment": "Three outcomes. avg >= pass_threshold: blueprint plus the winning SE popup. blueprint_threshold <= avg < pass_threshold: blueprint, no SE invitation. Below blueprint_threshold: the reject screen, no document. Scores are whole numbers, so in totals out of 15 this is 8+ / 6-7 / 3-5.",
+    "blueprint_threshold": 2.0,
     "timeout": 20,
     "fallback_score": 3,
     "capacity": {
@@ -759,7 +759,7 @@
         {"label": "This month", "score": 5},
         {"label": "This quarter", "score": 4},
         {"label": "In the next six months", "score": 3},
-        {"label": "Later than that", "score": 2},
+        {"label": "Later than that", "score": 1},
         {"label": "No capacity right now", "score": 1}
       ]
     },
