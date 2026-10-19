@@ -196,19 +196,19 @@
      a trophy that drops in, and confetti that falls behind it. */
   #ov-se { z-index:60; background:rgba(25,29,39,.82); overflow:hidden; }
   #ov-se .card { position:relative; z-index:2; max-width:440px; text-align:center;
-    padding:30px 26px; border:2px solid #F5C04A;
-    background:linear-gradient(160deg,rgba(64,52,28,.97),rgba(44,52,68,.97));
+    padding:30px 26px; border:2px solid #E5C872;
+    background:linear-gradient(160deg,rgba(196,104,42,.55),rgba(44,52,68,.97) 70%);
     animation:sepop .55s cubic-bezier(.2,1.6,.4,1) both, seglow 1.8s ease-in-out .55s infinite; }
   #ov-se .trophy { font-size:64px; line-height:1; animation:sedrop .7s cubic-bezier(.2,1.5,.4,1) .15s both; }
-  #ov-se .kicker { margin-top:12px; font:800 12px/1 ui-monospace,monospace; letter-spacing:.18em; color:#F5C04A; }
-  #ov-se h2 { margin:10px 0 8px; font-size:26px; color:#FFE7A3; }
-  #ov-se .body { font-size:14px; line-height:1.5; color:#E8E2D0; }
+  #ov-se .kicker { margin-top:12px; font:800 12px/1 ui-monospace,monospace; letter-spacing:.18em; color:#E5C872; }
+  #ov-se h2 { margin:10px 0 8px; font-size:26px; color:#E5C872; }
+  #ov-se .body { font-size:14px; line-height:1.5; color:#E5EFF5; }
   #ov-se button { margin-top:18px; padding:10px 26px; font-size:14px; }
   .confetti { position:absolute; top:-14px; width:9px; height:14px; z-index:1;
     border-radius:2px; animation:sefall linear forwards; }
   @keyframes sepop { 0% { opacity:0; transform:scale(.5); } 100% { opacity:1; transform:scale(1); } }
-  @keyframes seglow { 0%,100% { box-shadow:0 0 18px rgba(245,192,74,.35); }
-    50% { box-shadow:0 0 46px rgba(245,192,74,.85); } }
+  @keyframes seglow { 0%,100% { box-shadow:0 0 18px rgba(229,200,114,.35); }
+    50% { box-shadow:0 0 46px rgba(229,200,114,.85); } }
   @keyframes sedrop { 0% { opacity:0; transform:translateY(-60px) scale(.6) rotate(-20deg); }
     100% { opacity:1; transform:none; } }
   @keyframes sefall { 0% { transform:translateY(0) rotate(0); opacity:1; }
@@ -766,7 +766,7 @@
       <span class="keys" id="bp-keys">Builds your document and your QR code</span></div>
   </div></div>
   <div class="ov" id="ov-se"><div class="card">
-    <div class="trophy" aria-hidden="true">&#127942;</div>
+    <div class="trophy" aria-hidden="true">🏆</div>
     <div class="kicker" id="se-kicker"></div>
     <h2 id="se-title"></h2>
     <div class="body" id="se-body"></div>
@@ -3123,7 +3123,7 @@ function showSeWin(){
   $('se-go').textContent=qualText('popup_button')||'CONTINUE';
   const ov=$('ov-se');
   ov.querySelectorAll('.confetti').forEach(c=>c.remove());
-  const cols=['#F5C04A','#29B5E8','#ED8D30','#7FD1AE','#FFE7A3','#E8E2D0'];
+  const cols=['#E5C872','#29B5E8','#ED8D30','#79BE7E','#D389E5','#E5EFF5'];
   for(let i=0;i<70;i++){
     const c=document.createElement('i'); c.className='confetti';
     c.style.left=(Math.random()*100)+'%';
