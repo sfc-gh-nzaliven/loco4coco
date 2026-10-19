@@ -307,7 +307,7 @@ if bonus_on:
 
 if qual_on:
     q = (f"SELECT SE_SCORE_NOW, SE_SCORE_SOLVABLE, SE_SCORE_CONSUMPTION, "
-         f"SE_SCORE_AVG, SE_QUALIFIED, SE_SCORING FROM {db}.{sch}.SESSIONS "
+         f"SE_SCORE_AVG, SE_QUALIFIED, SE_SCORING, SE_BRIEF FROM {db}.{sch}.SESSIONS "
          f"WHERE SESSION_ID = '{session_id}'")
     r = subprocess.run([_snow_binary(), "sql", "-q", q, "--format", "json", "-c", conn],
                        capture_output=True, text=True, timeout=120)
@@ -324,6 +324,10 @@ if qual_on:
     if row.get("SE_SCORE_NOW") != 5 or row.get("SE_SCORE_AVG") is None \
             or row.get("SE_QUALIFIED") is None:
         fails.append(f"SESSIONS SE columns not written: {row}")
+    brief = row.get("SE_BRIEF") or ""
+    print(f"se brief       : {brief[:110]}")
+    if len(brief) < 40:
+        fails.append("SESSIONS.SE_BRIEF is missing or too short")
 
 post("/api/reset")
 blob = json.dumps(state()).lower()

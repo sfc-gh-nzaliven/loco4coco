@@ -2435,6 +2435,7 @@ def log_session(cfg, state):
             "capacity", "tier", "solvable_why", "consumption_estimate",
             "consumption_why", "threshold", "blueprint_threshold",
             "scored_by_model", "model", "error")} if se else None,
+        "SE_BRIEF": se.get("brief") or None,
     }
     bool_cols = ["QA_PASSED", "QA_RELEVANT", "SE_QUALIFIED"]
     arr_cols = ["DATA_HELD", "MARKETPLACE_JOINED", "FEATURES",
@@ -3256,6 +3257,34 @@ def _score5(v):
         return None
 
 
+def _fallback_brief(cfg, state, now):
+    """A plain brief from what the visitor gave, when the model wrote none.
+    Facts only, so it can never mislead the SE."""
+    vis = state.get("visitor") or {}
+    poc = state.get("poc") or {}
+    who = vis.get("first_name") or "The visitor"
+    if vis.get("company"):
+        who += f" from {vis['company']}"
+    ind = industry_name(cfg, vis.get("industry"))
+    ask = (vis.get("problem") or "no problem statement given").strip()[:300]
+    parts = [f"{who}{f' ({ind})' if ind else ''} wants: "
+             f"{ask}{'' if ask[-1:] in '.!?' else '.'}"]
+    if poc.get("poc_name"):
+        parts.append(f"CoCo drafted '{poc['poc_name']}'"
+                     + (f" using {', '.join(poc.get('features') or [])}"
+                        if poc.get("features") else "") + ".")
+    if state.get("held") or state.get("platforms"):
+        parts.append("Data: " + ", ".join(state.get("held") or ["not stated"])
+                     + "; lives on " + (", ".join(state.get("platforms") or [])
+                                        or "not stated") + ".")
+    cap = (state.get("se") or {}).get("capacity")
+    if cap:
+        parts.append(f"Timing: {cap}.")
+    parts.append("Model brief unavailable - read the problem statement before "
+                 "opening.")
+    return " ".join(parts)
+
+
 def se_qualify(cfg, state):
     """Score the use case. Never raises; a failed model call falls back to
     `fallback_score` so an outage cannot turn a visitor away."""
@@ -3319,6 +3348,8 @@ def se_qualify(cfg, state):
         "solvable_why": str(d.get("solvable_why") or "")[:300],
         "consumption_estimate": str(d.get("consumption_estimate") or "")[:60],
         "consumption_why": str(d.get("consumption_why") or "")[:300],
+        "brief": str(d.get("se_brief") or "").strip()[:1200]
+                 or _fallback_brief(cfg, state, now),
         "scored_by_model": scored, "model": mdl,
         "error": err or ("" if scored else "unparseable reply"),
     })
@@ -3923,7 +3954,7 @@ class Handler(BaseHTTPRequestHandler):
             # view, so this is the one place outside SESSIONS they appear.
             "se_scores": {k: (st.get("se") or {}).get(k) for k in (
                 "capacity", "now", "solvable", "consumption", "avg",
-                "qualified", "tier", "consumption_estimate")},
+                "qualified", "tier", "consumption_estimate", "brief")},
         })
 
     def _admin_apply(self):

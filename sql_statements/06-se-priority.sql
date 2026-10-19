@@ -5,7 +5,8 @@
 --   SE_SCORE_SOLVABLE     Snowflake-solvable, and a quick win CoCo can build
 --   SE_SCORE_CONSUMPTION  estimated Snowflake consumption
 -- SE_QUALIFIED is TRUE when the average is >= 2.5 (in practice a total of 8+/15); those visitors were told to
--- come and talk to an SE. SE_SCORING holds the reasons and the $ estimate.
+-- come and talk to an SE. SE_BRIEF is a 20-second read before walking over;
+-- SE_SCORING holds the per-score reasons and the $ estimate.
 -- SCORED_BY_MODEL = FALSE means the model call failed and the visitor was let
 -- through on fallback scores - re-read those rows by hand.
 
@@ -18,6 +19,7 @@ SELECT SESSION_TS,
        SE_SCORE_SOLVABLE,
        SE_SCORE_CONSUMPTION,
        SE_QUALIFIED,
+       SE_BRIEF,
        SE_SCORING:capacity::TEXT             AS CAPACITY_ANSWER,
        SE_SCORING:consumption_estimate::TEXT AS CONSUMPTION_ESTIMATE,
        SE_SCORING:solvable_why::TEXT         AS SOLVABLE_WHY,

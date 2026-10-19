@@ -236,6 +236,7 @@ function paint(s) {
       + (q.consumption_estimate ? ` (${q.consumption_estimate})` : '')
       + ` · avg ${q.avg} · ${({qualified:'QUALIFIED for SE', blueprint:'blueprint only', rejected:'rejected'})[q.tier] || (q.qualified ? 'QUALIFIED for SE' : 'not qualified')}`;
     qn.className = q.qualified ? 'ok' : 'idle';
+    if (q.brief) qn.textContent += ' \u2014 ' + q.brief;
   }
 }
 
