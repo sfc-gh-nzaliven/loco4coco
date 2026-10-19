@@ -2432,9 +2432,9 @@ def log_session(cfg, state):
         "SE_SCORE_AVG": se.get("avg"),
         "SE_QUALIFIED": se.get("qualified") if se.get("avg") is not None else None,
         "SE_SCORING": {k: se.get(k) for k in (
-            "capacity", "solvable_why", "consumption_estimate",
-            "consumption_why", "threshold", "scored_by_model", "model",
-            "error")} if se else None,
+            "capacity", "tier", "solvable_why", "consumption_estimate",
+            "consumption_why", "threshold", "blueprint_threshold",
+            "scored_by_model", "model", "error")} if se else None,
     }
     bool_cols = ["QA_PASSED", "QA_RELEVANT", "SE_QUALIFIED"]
     arr_cols = ["DATA_HELD", "MARKETPLACE_JOINED", "FEATURES",
@@ -3123,9 +3123,10 @@ def run_send(cfg, job_id):
         except Exception as e:                                   # noqa: BLE001
             print(f"[loco4coco] QA review error (non-blocking): {e}")
 
-    # SE qualification, after QA so it scores the finished POC. Below the
-    # threshold the game ends here: no document, a kind closing line, and the
-    # row still lands in SESSIONS with the scores for the SE.
+    # SE qualification, after QA so it scores the finished POC. Only the
+    # lowest tier ends the game here: no document, a kind closing line, and
+    # the row still lands in SESSIONS with the scores for the SE. The middle
+    # tier gets the blueprint without the SE invitation.
     qc = cfg.get("qualification") or {}
     name = (state.get("visitor") or {}).get("first_name") or "there"
     if qc.get("enabled"):
@@ -3133,10 +3134,11 @@ def run_send(cfg, job_id):
             se = se_qualify(cfg, state)
         except Exception as e:                                   # noqa: BLE001
             print(f"[loco4coco] SE qualification error (non-blocking): {e}")
-            se = dict(state.get("se") or {}, qualified=True, error=str(e)[:200])
+            se = dict(state.get("se") or {}, qualified=True, tier="qualified",
+                      error=str(e)[:200])
         write_state({"se": se, "qualified": bool(se.get("qualified"))})
         state = read_state()
-        if not se.get("qualified"):
+        if se.get("tier") == "rejected":
             reply = str(qc.get("not_qualified_reply") or "Thanks for playing.") \
                 .replace("{first_name}", name)
             write_state({"queued": False, "email_sent": False, "se_ended": True})
@@ -3158,7 +3160,8 @@ def run_send(cfg, job_id):
                                    "Snowflake person and we will sort it.")
     st = read_state()
     write_state({"queued": bool(delivered), "email_sent": False})
-    if delivered and qc.get("enabled") and qc.get("qualified_line"):
+    if delivered and qc.get("enabled") and qc.get("qualified_line") \
+            and read_state().get("qualified"):
         reply = (reply + " " + str(qc["qualified_line"])
                  .replace("{first_name}", name)).strip()
 
@@ -3301,7 +3304,8 @@ def se_qualify(cfg, state):
     sol, con = _score5(d.get("solvable")), _score5(d.get("consumption"))
     scored = sol is not None and con is not None
     sol, con = sol or fb, con or fb
-    thr = float(qc.get("pass_threshold") or 3.0)
+    thr = float(qc.get("pass_threshold") or 2.5)
+    bthr = float(qc.get("blueprint_threshold") or 0)
     total = now + sol + con
     se.update({
         "now": now, "solvable": sol, "consumption": con,
@@ -3311,17 +3315,21 @@ def se_qualify(cfg, state):
         # and SE_SCORING.scored_by_model=false tells the SE to look again.
         "qualified": (total >= 3 * thr - 1e-9) or not scored,
         "threshold": thr,
+        "blueprint_threshold": bthr,
         "solvable_why": str(d.get("solvable_why") or "")[:300],
         "consumption_estimate": str(d.get("consumption_estimate") or "")[:60],
         "consumption_why": str(d.get("consumption_why") or "")[:300],
         "scored_by_model": scored, "model": mdl,
         "error": err or ("" if scored else "unparseable reply"),
     })
+    # Three outcomes: SE conversation, blueprint only, or the reject screen.
+    se["tier"] = ("qualified" if se["qualified"]
+                  else "blueprint" if total >= 3 * bthr - 1e-9 else "rejected")
     secs = time.time() - started
     log_cost(cfg, "se_qualify", secs, usage, scored, "complete", mdl,
              error=se["error"] or None, note=(raw or "")[:200])
     print(f"[loco4coco] SE score now={now} solvable={sol} consumption={con} "
-          f"avg={se['avg']} qualified={se['qualified']} ({secs:.1f}s)")
+          f"avg={se['avg']} tier={se['tier']} ({secs:.1f}s)")
     return se
 
 
@@ -3915,7 +3923,7 @@ class Handler(BaseHTTPRequestHandler):
             # view, so this is the one place outside SESSIONS they appear.
             "se_scores": {k: (st.get("se") or {}).get(k) for k in (
                 "capacity", "now", "solvable", "consumption", "avg",
-                "qualified", "consumption_estimate")},
+                "qualified", "tier", "consumption_estimate")},
         })
 
     def _admin_apply(self):

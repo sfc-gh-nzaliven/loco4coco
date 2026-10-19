@@ -192,6 +192,27 @@
     35% { transform:translate(-50%,-70%) scale(1); }
     100% { opacity:0; transform:translate(-50%,-190%) scale(1); } }
   #h-score { display:inline-block; }
+  /* SE win popup: the qualified visitor's moment. Gold card, pulsing glow,
+     a trophy that drops in, and confetti that falls behind it. */
+  #ov-se { z-index:60; background:rgba(25,29,39,.82); overflow:hidden; }
+  #ov-se .card { position:relative; z-index:2; max-width:440px; text-align:center;
+    padding:30px 26px; border:2px solid #F5C04A;
+    background:linear-gradient(160deg,rgba(64,52,28,.97),rgba(44,52,68,.97));
+    animation:sepop .55s cubic-bezier(.2,1.6,.4,1) both, seglow 1.8s ease-in-out .55s infinite; }
+  #ov-se .trophy { font-size:64px; line-height:1; animation:sedrop .7s cubic-bezier(.2,1.5,.4,1) .15s both; }
+  #ov-se .kicker { margin-top:12px; font:800 12px/1 ui-monospace,monospace; letter-spacing:.18em; color:#F5C04A; }
+  #ov-se h2 { margin:10px 0 8px; font-size:26px; color:#FFE7A3; }
+  #ov-se .body { font-size:14px; line-height:1.5; color:#E8E2D0; }
+  #ov-se button { margin-top:18px; padding:10px 26px; font-size:14px; }
+  .confetti { position:absolute; top:-14px; width:9px; height:14px; z-index:1;
+    border-radius:2px; animation:sefall linear forwards; }
+  @keyframes sepop { 0% { opacity:0; transform:scale(.5); } 100% { opacity:1; transform:scale(1); } }
+  @keyframes seglow { 0%,100% { box-shadow:0 0 18px rgba(245,192,74,.35); }
+    50% { box-shadow:0 0 46px rgba(245,192,74,.85); } }
+  @keyframes sedrop { 0% { opacity:0; transform:translateY(-60px) scale(.6) rotate(-20deg); }
+    100% { opacity:1; transform:none; } }
+  @keyframes sefall { 0% { transform:translateY(0) rotate(0); opacity:1; }
+    100% { transform:translateY(110vh) rotate(720deg); opacity:.9; } }
   /* Indeterminate bar shown while the background workshop is still drafting. */
   .bp-prep { height:8px; margin:18px 0 8px; border-radius:4px; overflow:hidden;
     background:var(--line); position:relative; }
@@ -744,6 +765,13 @@
     <div class="go"><button class="primary" id="bp-send">CREATE MY BLUEPRINT</button>
       <span class="keys" id="bp-keys">Builds your document and your QR code</span></div>
   </div></div>
+  <div class="ov" id="ov-se"><div class="card">
+    <div class="trophy" aria-hidden="true">&#127942;</div>
+    <div class="kicker" id="se-kicker"></div>
+    <h2 id="se-title"></h2>
+    <div class="body" id="se-body"></div>
+    <button class="primary" id="se-go"></button>
+  </div></div>
   <div class="ov" id="ov-board"><div class="card" style="max-width:460px;text-align:center;padding:24px">
     <h2 id="sb-title" style="color:var(--edge)"></h2>
     <ol id="sb-list" style="text-align:left;margin:14px auto;max-width:320px;font-size:15px;line-height:1.8"></ol>
@@ -987,6 +1015,7 @@ const blocking = () => panelOpen || $('ov-title').classList.contains('on')
   || $('ov-ask').classList.contains('on')
   || $('ov-bonus').classList.contains('on')
   || $('ov-board').classList.contains('on')
+  || $('ov-se').classList.contains('on')
   || $('ov-bp').classList.contains('on');
 addEventListener('keydown',e=>{
   // Movement swallows w/a/s/d with preventDefault, so a focused field lost those
@@ -997,7 +1026,8 @@ addEventListener('keydown',e=>{
       || (t && t.isContentEditable))) return;
   if(blocking()){
     if(e.key==='Escape'){
-      if($('ov-bonus').classList.contains('on')) skipBonus();
+      if($('ov-se').classList.contains('on')) $('se-go').click();
+      else if($('ov-bonus').classList.contains('on')) skipBonus();
       else if(panelOpen) tryClosePanel(); else closeBp();
     }
     return;
@@ -3082,6 +3112,34 @@ async function showBp(){
 let capPick=null, capSession='';
 const QUAL=()=>CFG.qualification||{};
 function qualOn(){ return !!QUAL().enabled; }
+// The win moment, once per visitor: a qualified visitor's blueprint is ready.
+let seWinShown='';
+function showSeWin(){
+  if(seWinShown===(ST.session_id||'x')) return;
+  seWinShown=ST.session_id||'x';
+  $('se-kicker').textContent=qualText('popup_kicker');
+  $('se-title').textContent=qualText('popup_title');
+  $('se-body').textContent=qualText('popup_body');
+  $('se-go').textContent=qualText('popup_button')||'CONTINUE';
+  const ov=$('ov-se');
+  ov.querySelectorAll('.confetti').forEach(c=>c.remove());
+  const cols=['#F5C04A','#29B5E8','#ED8D30','#7FD1AE','#FFE7A3','#E8E2D0'];
+  for(let i=0;i<70;i++){
+    const c=document.createElement('i'); c.className='confetti';
+    c.style.left=(Math.random()*100)+'%';
+    c.style.background=cols[i%cols.length];
+    c.style.animationDuration=(2.2+Math.random()*2.2)+'s';
+    c.style.animationDelay=(Math.random()*0.9)+'s';
+    ov.appendChild(c);
+  }
+  ov.classList.add('on');
+  try{ GameAudio.playAchievement(); }catch(e){}
+}
+$('se-go').addEventListener('click',()=>{
+  $('ov-se').classList.remove('on');
+  // The blueprint card underneath keeps a quiet reminder of the invitation.
+  const q=$('bp-qual'); q.textContent=qualText('qualified_line'); q.style.display='';
+});
 function qualText(k){
   return String(QUAL()[k]||'').replace(/\{first_name\}/g,(ST.visitor||{}).first_name||'there');
 }
@@ -3151,7 +3209,10 @@ function paintSendBtn(d){
     return;
   }
   if(d.queued || d.draft_created){
-    if(d.qualified && qualOn()){ qual.textContent=qualText('qualified_line'); qual.style.display=''; }
+    if(d.qualified && qualOn() && d.document_url){
+      showSeWin();
+      if(!$('ov-se').classList.contains('on')){ qual.textContent=qualText('qualified_line'); qual.style.display=''; }
+    }
     $('bp-bonus').style.display='none';         // bonus catch-up closes on send
     h2.textContent='Your blueprint is ready';
     // Delivery and FINISHING are two presses, not one. Retiring the button here
