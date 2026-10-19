@@ -2,6 +2,16 @@
   "name": "loco4coco",
   "description": "Loco for CoCo - a sub-five-minute booth activation for Snowflake World Tour. A visitor drives a penguin round an arctic map, answers a few light questions, and leaves with a POC blueprint: their idea in their own words, the Snowflake developer guide to fork, the features it uses with doc links, and a ready-to-paste Cortex Code kick-off prompt for their free trial. It runs as a local Python server plus a browser canvas (game/); the shared closed lists live in Snowflake and, offline, in skills/loco4coco/references/. Visitor-facing copy is externalised into game/config.json so Paris is a translation, not a rebuild. No dependency on other plugins.",
   "version": "0.1.0",
+  "authors": [
+    {
+      "name": "sfc-gh-pgardner",
+      "url": "https://github.com/sfc-gh-pgardner"
+    },
+    {
+      "name": "Nikita Zaliven",
+      "email": "nikita.zaliven@snowflake.com"
+    }
+  ],
   "context": {
     "note": "The definitive closed lists the activation may name: Marketplace listings, developer guides, feature doc links, POC archetypes and integration routes. Declared here so they are retrievable without a running booth server and without MCP, which is not guaranteed on a borrowed laptop.",
     "retrieval": "Deterministic keyword scoring in game/context.py, NOT a search service. The corpus is ~150 rows, so scoring it in process is instant, offline-safe and repeatable - which a Snowflake-branded stand requires. Entry points: resolve_archetype(text) routes a visitor's own words to one of nine POC shapes via the archetype pain text; shortlist_block(text, industry) returns a prompt-ready block of only the listings, features and guides that turn may use.",

@@ -128,3 +128,8 @@ Total CoCo wait is about 58s of the 300s budget, down from 144.5s before tuning.
   idle shutdown - each of those ends the activation in public rather than saving money
   worth having. Measured: the booth warehouse used 0.78 credits in 14 days against 64
   for Cortex Code Desktop. Cost is observed via `game/cost.jsonl`, not enforced.
+
+## Authors
+
+- [sfc-gh-pgardner](https://github.com/sfc-gh-pgardner) - original author
+- Nikita Zaliven (nikita.zaliven@snowflake.com) - Hayadata (Tel Aviv) localization, bonus questions, Solution Engineer scoring
