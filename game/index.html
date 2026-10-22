@@ -543,6 +543,20 @@
   .card.letter .lsel option { color:#2A2418; background-color:#FFFFFF; }
   .card.letter .lhint { font-size:12px; color:#8A3524; font-family:ui-monospace,monospace; }
   .card.letter .primary { font-family:ui-monospace,monospace; }
+  /* "How to move" card: floats over the map when it goes live, never blocks input */
+  #ctl-pop { position:fixed; left:50%; top:40%; transform:translate(-50%,-12px);
+    z-index:60; pointer-events:none; opacity:0; transition:opacity .35s, transform .35s;
+    background:var(--panel); border:2px solid var(--edge); border-radius:10px;
+    padding:16px 22px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.45); max-width:420px; }
+  #ctl-pop.on { opacity:1; transform:translate(-50%,0); animation:ctlbob 1.6s ease-in-out .4s infinite; }
+  @keyframes ctlbob { 50% { transform:translate(-50%,-5px); } }
+  #ctl-title { color:var(--edge); font-weight:700; letter-spacing:.14em; font-size:13px; margin-bottom:10px; }
+  .ctl-keys { display:grid; grid-template-columns:repeat(3,38px); gap:5px; justify-content:center; margin-bottom:12px; }
+  .ctl-keys span { height:38px; border:2px solid var(--line); border-bottom-width:4px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; color:var(--text); font-size:18px; }
+  .ctl-keys .up { grid-column:2; grid-row:1; }
+  .ctl-keys .row2 { grid-row:2; }
+  #ctl-body { color:var(--text); font-size:14px; line-height:1.45; }
 </style>
 </head>
 <body>
@@ -1033,7 +1047,7 @@ addEventListener('keydown',e=>{
     return;
   }
   const k=e.key.toLowerCase();
-  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){ keys[k]=true; e.preventDefault(); }
+  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){ keys[k]=true; e.preventDefault(); hideControls(); }
   if((k==='e'||k==='enter')&&nearId) openPanel(nearId);
   if(k==='[') stepHist(-1);
   if(k===']') stepHist(1);
@@ -2356,6 +2370,23 @@ function openProg(){
   return Math.max(0,Math.min(1,(Date.now()-openT)/d));
 }
 function L(){ return (CFG.intake||{}).letter||{}; }
+// The one-line opening is held long enough to read, capped so it never stalls.
+function phaseDur(p){
+  if(p==='line1' && L().go_line)
+    return Math.max(3500,Math.min(6500,1500+fillTpl(L().go_line).length*30));
+  return OPEN_DUR[p];
+}
+// Floating "how to move" card over the map. Closed by the first step or a timer.
+function showControls(){
+  const c=L().controls||{}, el=$('ctl-pop');
+  if(!el || !c.body) return;
+  $('ctl-title').textContent=c.title||'HOW TO MOVE';
+  $('ctl-body').textContent=c.body;
+  el.classList.add('on');
+  clearTimeout(showControls._t);
+  showControls._t=setTimeout(hideControls,(+c.seconds||8)*1000);
+}
+function hideControls(){ const el=$('ctl-pop'); if(el) el.classList.remove('on'); }
 function fillTpl(s){
   const v=ST.visitor||{}, lv=lastLetter;
   return String(s||'')
@@ -2382,8 +2413,11 @@ function setPhase(p){
     // mid-scene. Every house beat now lands in the one place the stylesheet
     // designates for narrative. Held a little past the beat so the line cannot
     // blank out in the gap before the next one arms.
-    const txt=fillTpl(p==='line1'?L().line1:L().line2);
-    nudge(txt,(OPEN_DUR[p]||2600)+1200); logOpening(txt);
+    // With intake.letter.go_line set, line1 carries that one explanatory line
+    // and the opening goes straight to the door (see nextPhase), so the visitor
+    // is walking within seconds instead of reading four timed paragraphs.
+    const txt=fillTpl(p==='line1'?(L().go_line||L().line1):L().line2);
+    nudge(txt,phaseDur(p)+1200); logOpening(txt);
   } else if(p==='summary'){
     trustIdx=0; buildSummary(); paintTrustLine();
   }
@@ -2397,8 +2431,9 @@ function setPhase(p){
     nudge(line,12000);
     setTimeout(()=>nudge(line,10000),700);
   }
+  if(p==='map') showControls();
   // Timed phases advance themselves; 'letter' waits for the visitor to submit.
-  const d=OPEN_DUR[p];
+  const d=phaseDur(p);
   if(d){ clearTimeout(setPhase._t); setPhase._t=setTimeout(nextPhase,d); }
 }
 function nextPhase(){
@@ -2409,6 +2444,7 @@ function nextPhase(){
   const i=order.indexOf(openPhase);
   if(i<0||openPhase==='map') return;
   if(openPhase==='letter') return;            // blocked until the form is sent
+  if(openPhase==='line1' && L().go_line){ setPhase('leave'); return; }
   if(openPhase==='questions') return;         // no longer reachable; kept harmless
   // The trust beat walks through its own lines first, then closes the house
   // panel and hands on to the door.
@@ -4669,5 +4705,10 @@ function fitCanvas(){
   setInterval(poll,CFG.server.poll_ms); loop();
 })();
 </script>
+<div id="ctl-pop" role="status" aria-live="polite">
+  <div id="ctl-title">HOW TO MOVE</div>
+  <div class="ctl-keys"><span class="up">&#9650;</span><span class="row2">&#9664;</span><span class="row2">&#9660;</span><span class="row2">&#9654;</span></div>
+  <div id="ctl-body"></div>
+</div>
 </body>
 </html>

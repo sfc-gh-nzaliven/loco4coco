@@ -3540,6 +3540,14 @@ def compute_score(cfg, state, final=False):
         pts += int(sc.get("under_time") or 0)
     if len(ans) >= int(_bonus_cfg(cfg).get("max_answered") or 5):
         pts += int(sc.get("all_answered") or 0)
+    # End-of-game bonus: the SE average (1-5) times the multiplier, once the
+    # use case has been scored at the postbox. Unscored visits get nothing.
+    avg = (state.get("se") or {}).get("avg")
+    if "postbox" in stops and avg is not None:
+        try:
+            pts += int(round(float(avg) * float(sc.get("se_avg_multiplier", 100))))
+        except (TypeError, ValueError):
+            pass
     return pts
 
 
