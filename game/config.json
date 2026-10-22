@@ -8,13 +8,13 @@
     "idle_shutdown_minutes": 0
   },
   "event": {
-    "venue": "tel_aviv",
-    "event_name": "Hayadata",
+    "venue": "berlin",
+    "event_name": "",
     "_event_name_comment": "What visitors see as the event: the docx 'Prepared for ... - <event_name>.' line, the share card and CoCo's persona. Independent of venue (which only picks datasets and region). Empty falls back to 'Snowflake World Tour <city>'.",
     "_venue_comment": "The ONE toggle a booth operator changes per event. Expands via the venues map below into city, language, cloud region and marketplace profile. One of: london, paris, berlin (the three SWT events) or tel_aviv (Hayadata) - and ONLY those. This comment used to list frankfurt as a fourth, which is wrong and was actively dangerous: Frankfurt is the ACCOUNT's region, not an event, and resolve_venue() answers an unknown venue by quietly defaulting market_profile to 'uk', so an operator who trusted this line and set venue to 'frankfurt' would have stood up a booth serving London's datasets with no error anywhere. Do not add a venue here without adding it to the venues map, and do not add one that is not an event. Leave unset to hand-configure city/language/region directly.",
-    "city": "Tel Aviv",
+    "city": "London",
     "language": "en",
-    "marketplace_region": "AWS_EU_CENTRAL_1",
+    "marketplace_region": "AWS_EU_WEST_2",
     "_marketplace_region_comment": "The EVENT's region - where the visitors live. Used ONLY to decide which Marketplace datasets are PREFERRED in the recommendations. Resolved from event.venue; you do not set it by hand. It is NOT the account's region and must never be confused with it: the account's region only decides where SESSIONS/TURNS/blueprints are written, is whatever the DataOps pool assigned, and is never needed. Renamed from `region`, which did not say which of the two it meant. Offering a visitor a share they cannot attach wastes the five minutes we just spent with them.",
     "title": "Loco for CoCo",
     "subtitle": "Five minutes to your next data product",
@@ -115,7 +115,7 @@
       {
         "id": "company",
         "label": "Where you work",
-        "placeholder": "e.g. Clalit, Bank Leumi, Shufersal"
+        "placeholder": "e.g. NHS Trust, Barclays, Tesco"
       }
     ],
     "industry_question": "And what world do you work in? I'll fill the library with the right shelves.",
@@ -536,7 +536,7 @@
       "heading": "What shall we join to your data?",
       "hint": "Live listings, filtered to what you can attach in this region. No ETL, no storage cost, refreshed by the provider. The same door works outwards: this is how you share your own data without handing over a copy.",
       "other_label": "Something else you'd join",
-      "other_placeholder": "e.g. Israeli address data, company registry data",
+      "other_placeholder": "e.g. UK postcode boundaries, company registry data",
       "discovery": "manual",
       "_discovery_comment": "manual = serve the CURATED marketplace-index.md, which is what the offline agentic-search precompute produced: 6 verified, free, UK-weighted, importability-checked picks per industry. This is deliberate for a branded event. MEASURED with discovery='live': public sector returned three Met Office weather products plus 'India Economic Monitor', because live matching ranked raw keyword hits with no geography and pinned two weather listings; after adding geo weighting and per-industry avoid terms it returned only 4 results, two of them weak ('UN Codes for Trade and Transport', 'Overture Maps'). Curation beats liveness on a stand: the stall must be predictable and defensible. Set to 'live' to use SHOW AVAILABLE LISTINGS (region + is_ready_for_import + geo weighting + industry_avoid), falling back here below min_live_results.",
       "narrative": "This is the Snowflake Marketplace, and every stall is a real company's data. You attach it and query it live, seconds later. You never copy it, you never build a pipeline for it, and you never pay to store it.",
@@ -754,7 +754,7 @@
   "qualification": {
     "_comment": "SE scoring. Three 1-5 scores decide whether the use case is worth an SE's time: NOW (the visitor's own capacity answer at the postbox, scored from the option below), SOLVABLE and CONSUMPTION (one COMPLETE call against the rubric in the prompt). Average >= pass_threshold qualifies: the visitor gets the blueprint and is told they can talk to an SE. Below it, the game ends with a friendly message and no blueprint. The scores themselves go ONLY to SESSIONS.SE_* and are stripped from every endpoint the browser reads. If the model call fails, SOLVABLE and CONSUMPTION default to fallback_score so a Snowflake outage never turns a visitor away.",
     "enabled": true,
-    "pass_threshold": 2.5,
+    "pass_threshold": 3.0,
     "_blueprint_threshold_comment": "Three outcomes. avg >= pass_threshold: blueprint plus the winning SE popup. blueprint_threshold <= avg < pass_threshold: blueprint, no SE invitation. Below blueprint_threshold: the reject screen, no document. Scores are whole numbers, so in totals out of 15 this is 8+ / 6-7 / 3-5.",
     "blueprint_threshold": 2.0,
     "timeout": 20,
@@ -1382,24 +1382,24 @@
     "synthetic_hint": "CoCo can mimic any shelf as synthetic data so a POC can start before the real feed exists. Generate it in Snowflake with GENERATOR and RANDOM, or let Cortex fabricate realistic rows from a description.",
     "external": [
       {
-        "name": "data.gov.il",
-        "url": "https://data.gov.il/",
-        "note": "Israeli government open data. Not on the Snowflake Marketplace."
+        "name": "Ordnance Survey Data Hub",
+        "url": "https://osdatahub.os.uk/",
+        "note": "UK geospatial: addresses, UPRN, topography. Not on the Snowflake Marketplace."
       },
       {
-        "name": "Central Bureau of Statistics",
-        "url": "https://www.cbs.gov.il/en",
-        "note": "Israeli population, localities, prices and economic statistics."
+        "name": "ONS Open Geography Portal",
+        "url": "https://geoportal.statistics.gov.uk/",
+        "note": "Boundaries, postcode lookups, output areas."
       },
       {
-        "name": "GovMap",
-        "url": "https://www.govmap.gov.il/",
-        "note": "Israeli national GIS: parcels, addresses, boundaries."
+        "name": "data.gov.uk",
+        "url": "https://www.data.gov.uk/",
+        "note": "UK public sector open data."
       },
       {
-        "name": "Israel Meteorological Service",
-        "url": "https://ims.gov.il/en",
-        "note": "Israeli weather observations and forecasts."
+        "name": "Met Office DataHub",
+        "url": "https://datahub.metoffice.gov.uk/",
+        "note": "Direct API access, and also on the Marketplace."
       }
     ]
   },
@@ -1430,11 +1430,15 @@
     "heading": "As you'll remember CoCo, we're based in",
     "hint": "Tap every country you have a base in. It helps me keep your data where your rules need it.",
     "options": [
+      "United Kingdom",
+      "Ireland",
+      "France",
+      "Germany",
+      "Netherlands",
+      "Nordics",
+      "Rest of EU",
       "Israel",
       "United States",
-      "United Kingdom",
-      "Germany",
-      "Rest of EU",
       "Asia-Pacific",
       "Somewhere else"
     ],

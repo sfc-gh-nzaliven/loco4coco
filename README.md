@@ -22,22 +22,6 @@ a Python standard-library server plus a browser canvas. No npm, no build step, n
 
 ## Setting it up
 
-> **Hayadata (Tel Aviv) branch — setup decisions are already made. Do not ask
-> the operator about them.**
->
-> - **Venue:** `tel_aviv` (already set in `game/config.json`). It serves the
->   Israel dataset profile (`il`), judged on AWS Frankfurt because Snowflake has
->   no Israel region. Never offer london/paris/berlin or ask for a city.
-> - **Connection:** use the operator's default `snow` connection (the one
->   marked default in `snow connection list`; if none is marked, the only one).
->   Ask only if there are several and none is the default.
-> - **Existing install:** if `~/.snowflake/cortex/plugins/loco4coco` already
->   holds this branch, reuse it — do not re-clone, back up or discard it. Pull
->   the latest with `git pull` if the working tree is clean.
-> - **Repo:** `https://github.com/sfc-gh-nzaliven/loco4coco`, branch
->   `hayadata-bonus-objectives`.
-
-
 The whole setup is three things, and you only do two of them:
 
 1. **Get an account** — register at <https://go.dataops.live/emea-swt/register>, once per
@@ -129,7 +113,55 @@ Total CoCo wait is about 58s of the 300s budget, down from 144.5s before tuning.
   worth having. Measured: the booth warehouse used 0.78 credits in 14 days against 64
   for Cortex Code Desktop. Cost is observed via `game/cost.jsonl`, not enforced.
 
+## Solution Engineer console
+
+`operator_app/` is a Streamlit in Snowflake app over `LOCO4COCO.BOOTH.SESSIONS`:
+visitors appear live as they finish, with their SE brief, scores and blueprint,
+and an SE can correct the scores, brief, notes and visitor inputs (the tier is
+recomputed with the game's thresholds and the edit is stamped). Deploy it with
+
+```bash
+python3 operator_app/deploy.py -c <connection>
+```
+
+## Running it at Hayadata (Tel Aviv)
+
+The defaults are the SWT events. For Hayadata, set these in `game/config.json`:
+
+- `event.venue`: `"tel_aviv"` and `event.event_name`: `"Hayadata"`. The venue
+  serves the Israel dataset profile (`il`), judged on AWS Frankfurt because
+  Snowflake has no Israel region.
+- `intake.fields[company].placeholder`: `"e.g. Clalit, Bank Leumi, Shufersal"`
+- `locations.marketplace.other_placeholder`: `"e.g. Israeli address data, company registry data"`
+- `sourcing.external`: replace with
+
+```json
+[
+  {
+    "name": "data.gov.il",
+    "url": "https://data.gov.il/",
+    "note": "Israeli government open data. Not on the Snowflake Marketplace."
+  },
+  {
+    "name": "Central Bureau of Statistics",
+    "url": "https://www.cbs.gov.il/en",
+    "note": "Israeli population, localities, prices and economic statistics."
+  },
+  {
+    "name": "GovMap",
+    "url": "https://www.govmap.gov.il/",
+    "note": "Israeli national GIS: parcels, addresses, boundaries."
+  },
+  {
+    "name": "Israel Meteorological Service",
+    "url": "https://ims.gov.il/en",
+    "note": "Israeli weather observations and forecasts."
+  }
+]
+```
+
 ## Authors
 
 - Paddy and Sabrina - original authors
-- Nikita Zaliven (nikita.zaliven@snowflake.com) - Hayadata (Tel Aviv) localization, bonus questions, Solution Engineer scoring
+- Nikita Zaliven (nikita.zaliven@snowflake.com) - Hayadata (Tel Aviv) venue,
+  bonus questions, Solution Engineer scoring and console, shorter onboarding

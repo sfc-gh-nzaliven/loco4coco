@@ -58,3 +58,7 @@ connections.toml
 # Runtime outbox (email was removed). Keep the directory, ignore any contents.
 game/outbox/*
 !game/outbox/.gitkeep
+
+# snow streamlit deploy bundle
+operator_app/output/
+operator_app/snowflake.yml

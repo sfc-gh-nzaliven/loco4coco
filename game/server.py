@@ -3333,7 +3333,7 @@ def se_qualify(cfg, state):
     sol, con = _score5(d.get("solvable")), _score5(d.get("consumption"))
     scored = sol is not None and con is not None
     sol, con = sol or fb, con or fb
-    thr = float(qc.get("pass_threshold") or 2.5)
+    thr = float(qc.get("pass_threshold") or 3.0)
     bthr = float(qc.get("blueprint_threshold") or 0)
     total = now + sol + con
     se.update({
